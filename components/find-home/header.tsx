@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,14 @@ export function Header({
   onClearFilter,
 }: HeaderProps) {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // 避免 hydration mismatch
+  const currentTheme = mounted ? theme : 'light'
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6 shadow-sm">
@@ -121,17 +130,35 @@ export function Header({
           <span className="hidden sm:inline">对比</span>
         </Button>
         
-        {/* 主题切换 */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="h-9 w-9 rounded-full hover:bg-accent"
-        >
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">切换主题</span>
-        </Button>
+        {/* 主题切换按钮 - 更醒目的设计 */}
+        <div className="flex items-center gap-1 rounded-full border border-border bg-muted p-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme('light')}
+            className={`h-8 w-8 rounded-full transition-all ${
+              currentTheme === 'light' 
+                ? 'bg-card text-primary shadow-sm' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Sun className="h-4 w-4" />
+            <span className="sr-only">亮色模式</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme('dark')}
+            className={`h-8 w-8 rounded-full transition-all ${
+              currentTheme === 'dark' 
+                ? 'bg-card text-primary shadow-sm' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Moon className="h-4 w-4" />
+            <span className="sr-only">暗色模式</span>
+          </Button>
+        </div>
 
         <Avatar className="h-10 w-10 cursor-pointer border-2 border-border hover:border-primary transition-colors shadow-sm">
           <AvatarImage src="/placeholder-user.jpg" alt="用户头像" />

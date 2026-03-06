@@ -146,7 +146,7 @@
   }
 }
 
-/* 自定义滚动条 */
+/* 自定义滚动条 - 亮色模式 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -165,6 +165,15 @@
   background: oklch(0.7 0.1 15);
 }
 
+/* 自定义滚动条 - 暗色模式 */
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.4 0.03 20);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0.05 15);
+}
+
 /* 表格行hover效果 */
 .table-row-hover {
   transition: background-color 0.15s ease;
@@ -172,4 +181,8 @@
 
 .table-row-hover:hover {
   background-color: oklch(0.97 0.02 15);
+}
+
+.dark .table-row-hover:hover {
+  background-color: oklch(0.26 0.02 20);
 }
