@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Property, ViewMode, SortField, SortOrder } from '@/types/property'
+import { Property, ViewMode, SortField, SortOrder, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { mockProperties } from '@/lib/mock-data'
 import { Header } from '@/components/find-home/header'
 import { PropertyTable } from '@/components/find-home/property-table'
@@ -18,6 +18,7 @@ export default function FindHomePage() {
   const [filterTag, setFilterTag] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>('lastViewing')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
 
   // 筛选和排序后的房源
   const filteredProperties = properties
@@ -29,20 +30,41 @@ export default function FindHomePage() {
     })
     .sort((a, b) => {
       let comparison = 0
-      switch (sortField) {
-        case 'price':
-          comparison = a.price - b.price
-          break
-        case 'area':
-          comparison = a.area - b.area
-          break
-        case 'lastViewing':
-          comparison = new Date(a.lastViewing || '1900-01-01').getTime() - 
-                       new Date(b.lastViewing || '1900-01-01').getTime()
-          break
-        case 'name':
-          comparison = a.name.localeCompare(b.name)
-          break
+      
+      // 检查是否是自定义列排序
+      const customColumn = columns.find(col => col.isCustom && col.key === sortField)
+      if (customColumn) {
+        const aVal = a.customFields?.[sortField] ?? ''
+        const bVal = b.customFields?.[sortField] ?? ''
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          comparison = aVal - bVal
+        } else {
+          comparison = String(aVal).localeCompare(String(bVal))
+        }
+      } else {
+        switch (sortField) {
+          case 'price':
+            comparison = a.price - b.price
+            break
+          case 'area':
+            comparison = a.area - b.area
+            break
+          case 'lastViewing':
+            comparison = new Date(a.lastViewing || '1900-01-01').getTime() - 
+                         new Date(b.lastViewing || '1900-01-01').getTime()
+            break
+          case 'name':
+            comparison = a.name.localeCompare(b.name)
+            break
+          case 'district':
+            comparison = a.district.localeCompare(b.district)
+            break
+          case 'age':
+            comparison = a.age - b.age
+            break
+          default:
+            comparison = 0
+        }
       }
       return sortOrder === 'asc' ? comparison : -comparison
     })
@@ -136,6 +158,7 @@ export default function FindHomePage() {
       isFavorite: false,
       coverImage: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=450&fit=crop',
       viewingRecords: [],
+      customFields: {},
     }
     setProperties((prev) => [...prev, newProperty])
     if (viewMode === 'edit') {
@@ -200,8 +223,8 @@ export default function FindHomePage() {
       <div className="flex flex-1 overflow-hidden">
         {/* 房源列表 */}
         <div
-          className={`flex-shrink-0 overflow-auto border-r border-border transition-all duration-200 ${
-            showSidebar ? 'w-[400px]' : 'w-full'
+          className={`flex-shrink-0 overflow-auto border-r border-border transition-all duration-300 ${
+            showSidebar ? 'w-[450px]' : 'w-full'
           }`}
         >
           <PropertyTable
@@ -211,6 +234,8 @@ export default function FindHomePage() {
             viewMode={viewMode}
             sortField={sortField}
             sortOrder={sortOrder}
+            columns={columns}
+            onColumnsChange={setColumns}
             onSelect={handleSelect}
             onViewDetail={handleViewDetail}
             onToggleFavorite={handleToggleFavorite}
@@ -238,6 +263,7 @@ export default function FindHomePage() {
               <PropertyDetail
                 property={activeProperty}
                 isEditMode={viewMode === 'edit'}
+                customColumns={columns}
                 onClose={() => {
                   // 编辑模式下关闭详情不退出编辑模式
                   if (viewMode !== 'edit') {

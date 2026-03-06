@@ -58,6 +58,7 @@ export const mockProperties: Property[] = [
       suitableFor: ['改善型家庭', '有孩子的家庭', '注重通勤便利的上班族'],
       negotiationTips: ['可尝试以周边成交价为参考议价', '房东急售，有5-10万议价空间', '建议关注同小区其他房源对比'],
     },
+    customFields: {},
   },
   {
     id: '2',
@@ -83,6 +84,7 @@ export const mockProperties: Property[] = [
       suitableFor: ['首次置业刚需', '有学区需求的家庭', '投资客'],
       negotiationTips: ['房东急售，议价空间较大', '可争取10-15万优惠', '注意了解急售原因'],
     },
+    customFields: {},
   },
   {
     id: '3',
@@ -125,6 +127,7 @@ export const mockProperties: Property[] = [
       suitableFor: ['高端改善需求', '注重生活品质的家庭', '有车一族'],
       negotiationTips: ['高端房源议价空间有限', '可尝试争取车位或物业费优惠', '关注开发商促销活动'],
     },
+    customFields: {},
   },
   {
     id: '4',
@@ -158,6 +161,7 @@ export const mockProperties: Property[] = [
         },
       },
     ],
+    customFields: {},
   },
   {
     id: '5',
@@ -183,6 +187,7 @@ export const mockProperties: Property[] = [
       suitableFor: ['预算有限的刚需', '过渡性居住', '出租投资'],
       negotiationTips: ['因朝向和噪音问题可大力议价', '预计有15-20万议价空间', '可要求业主承担部分税费'],
     },
+    customFields: {},
   },
   {
     id: '6',
@@ -224,5 +229,6 @@ export const mockProperties: Property[] = [
       suitableFor: ['改善型需求', '有孩子的家庭', '看好新区发展的投资者'],
       negotiationTips: ['新房限售期刚过，业主可能急于变现', '可尝试议价8-12万', '关注同期房源挂牌价格'],
     },
+    customFields: {},
   },
 ]

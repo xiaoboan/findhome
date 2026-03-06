@@ -30,7 +30,7 @@ export function FloatingActionButton({ onAddProperty }: FloatingActionButtonProp
             key={action.label}
             variant="secondary"
             size="sm"
-            className="flex items-center gap-2 bg-background shadow-lg hover:bg-secondary"
+            className="flex items-center gap-2 bg-card shadow-lg hover:bg-accent border border-border"
             onClick={() => {
               action.onClick()
               setIsOpen(false)
@@ -45,7 +45,7 @@ export function FloatingActionButton({ onAddProperty }: FloatingActionButtonProp
       {/* 主按钮 */}
       <Button
         size="icon"
-        className={`h-14 w-14 rounded-full bg-primary shadow-lg transition-transform duration-200 hover:bg-primary/90 active:scale-95 ${
+        className={`h-14 w-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 active:scale-95 ${
           isOpen ? 'rotate-45' : ''
         }`}
         onClick={() => setIsOpen(!isOpen)}
