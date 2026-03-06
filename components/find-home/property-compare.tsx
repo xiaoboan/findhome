@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Image from 'next/image'
-import { X, ArrowUp, ArrowDown, Sparkles, Settings2, Plus, Trash2, Eye, EyeOff } from 'lucide-react'
-import { Property, CompareColumnConfig, DEFAULT_COMPARE_COLUMNS } from '@/types/property'
+import { X, ArrowUp, ArrowDown, Sparkles, Settings2, Plus, Trash2 } from 'lucide-react'
+import { Property, CompareColumnConfig, DEFAULT_COMPARE_COLUMNS, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,42 +22,64 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
 interface PropertyCompareProps {
   properties: Property[]
+  customColumns?: ColumnConfig[]
   onClose: () => void
   onViewDetail: (id: string) => void
 }
 
-export function PropertyCompare({ properties, onClose, onViewDetail }: PropertyCompareProps) {
-  // 获取所有自定义字段
-  const allCustomFields = useMemo(() => {
-    const fields = new Set<string>()
-    properties.forEach(p => {
-      if (p.customFields) {
-        Object.keys(p.customFields).forEach(key => fields.add(key))
-      }
-    })
-    return Array.from(fields)
-  }, [properties])
-
-  // 初始化对比列配置，包含自定义字段
-  const [compareColumns, setCompareColumns] = useState<CompareColumnConfig[]>(() => {
-    const customColumns: CompareColumnConfig[] = allCustomFields.map(field => ({
-      key: field,
-      label: field.replace('custom_', ''),
+export function PropertyCompare({ properties, customColumns = [], onClose, onViewDetail }: PropertyCompareProps) {
+  // 合并默认列和自定义列
+  const initialCompareColumns = useMemo(() => {
+    // 从传入的自定义列创建对比列配置
+    const customCompareColumns: CompareColumnConfig[] = customColumns.map(col => ({
+      key: col.key,
+      label: col.label,
       visible: true,
       isCustom: true,
     }))
-    return [...DEFAULT_COMPARE_COLUMNS, ...customColumns]
-  })
+    
+    // 同时从房源数据中提取自定义字段
+    const customFieldsFromData = new Set<string>()
+    properties.forEach(p => {
+      if (p.customFields) {
+        Object.keys(p.customFields).forEach(key => customFieldsFromData.add(key))
+      }
+    })
+    
+    // 添加数据中存在但不在自定义列中的字段
+    const existingKeys = new Set([
+      ...DEFAULT_COMPARE_COLUMNS.map(c => c.key),
+      ...customCompareColumns.map(c => c.key)
+    ])
+    
+    const additionalColumns: CompareColumnConfig[] = Array.from(customFieldsFromData)
+      .filter(key => !existingKeys.has(key))
+      .map(key => ({
+        key,
+        label: key.replace('custom_', ''),
+        visible: true,
+        isCustom: true,
+      }))
+    
+    return [...DEFAULT_COMPARE_COLUMNS, ...customCompareColumns, ...additionalColumns]
+  }, [customColumns, properties])
+
+  const [compareColumns, setCompareColumns] = useState<CompareColumnConfig[]>(initialCompareColumns)
+  
+  // 当 initialCompareColumns 变化时更新
+  useEffect(() => {
+    setCompareColumns(prev => {
+      // 保留用户的可见性设置
+      const visibilityMap = new Map(prev.map(col => [col.key, col.visible]))
+      return initialCompareColumns.map(col => ({
+        ...col,
+        visible: visibilityMap.has(col.key) ? visibilityMap.get(col.key)! : col.visible
+      }))
+    })
+  }, [initialCompareColumns])
 
   const [showAddColumnDialog, setShowAddColumnDialog] = useState(false)
   const [newColumnKey, setNewColumnKey] = useState('')
@@ -94,19 +116,15 @@ export function PropertyCompare({ properties, onClose, onViewDetail }: PropertyC
   const rankedProperties = [...properties].sort((a, b) => {
     let scoreA = 0, scoreB = 0
     
-    // 价格越低越好
     if (a.price < avgPrice) scoreA += 2
     if (b.price < avgPrice) scoreB += 2
     
-    // 面积越大越好
     if (a.area > avgArea) scoreA += 1
     if (b.area > avgArea) scoreB += 1
     
-    // 已看的加分
     if (a.status === 'viewed') scoreA += 1
     if (b.status === 'viewed') scoreB += 1
     
-    // 收藏的加分
     if (a.isFavorite) scoreA += 1
     if (b.isFavorite) scoreB += 1
     
@@ -160,6 +178,9 @@ export function PropertyCompare({ properties, onClose, onViewDetail }: PropertyC
     }
   }
 
+  // 统计自定义列数量
+  const customColumnCount = compareColumns.filter(col => col.isCustom).length
+
   return (
     <div className="h-full overflow-auto p-6">
       {/* 关闭按钮 */}
@@ -183,6 +204,11 @@ export function PropertyCompare({ properties, onClose, onViewDetail }: PropertyC
             <Button variant="outline" size="sm" className="gap-2">
               <Settings2 className="h-4 w-4" />
               对比项设置
+              {customColumnCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                  {customColumnCount}
+                </Badge>
+              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80" align="end">
@@ -199,8 +225,11 @@ export function PropertyCompare({ properties, onClose, onViewDetail }: PropertyC
                   添加对比项
                 </Button>
               </div>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {compareColumns.map((column) => (
+              
+              {/* 内置对比项 */}
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground mb-2">内置项目</p>
+                {compareColumns.filter(col => !col.isCustom).map((column) => (
                   <div
                     key={column.key}
                     className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-accent"
@@ -210,16 +239,38 @@ export function PropertyCompare({ properties, onClose, onViewDetail }: PropertyC
                       {column.unit && (
                         <span className="text-xs text-muted-foreground">({column.unit})</span>
                       )}
-                      {column.isCustom && (
-                        <Badge variant="outline" className="text-xs h-5">自定义</Badge>
-                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={column.visible}
-                        onCheckedChange={() => handleToggleColumn(column.key)}
-                      />
-                      {column.isCustom && (
+                    <Switch
+                      checked={column.visible}
+                      onCheckedChange={() => handleToggleColumn(column.key)}
+                    />
+                  </div>
+                ))}
+              </div>
+              
+              {/* 自定义对比项 */}
+              {compareColumns.filter(col => col.isCustom).length > 0 && (
+                <div className="space-y-1 border-t pt-3">
+                  <p className="text-xs text-muted-foreground mb-2">自定义项目</p>
+                  {compareColumns.filter(col => col.isCustom).map((column) => (
+                    <div
+                      key={column.key}
+                      className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-accent"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{column.label}</span>
+                        {column.unit && (
+                          <span className="text-xs text-muted-foreground">({column.unit})</span>
+                        )}
+                        <Badge variant="outline" className="text-xs h-5 bg-primary/10 text-primary border-primary/20">
+                          自定义
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={column.visible}
+                          onCheckedChange={() => handleToggleColumn(column.key)}
+                        />
                         <Button
                           variant="ghost"
                           size="sm"
@@ -228,11 +279,12 @@ export function PropertyCompare({ properties, onClose, onViewDetail }: PropertyC
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+              
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground">
                   显示 {visibleColumns.length} / {compareColumns.length} 项
@@ -291,7 +343,14 @@ export function PropertyCompare({ properties, onClose, onViewDetail }: PropertyC
                 className={`hover:bg-accent/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-accent/20'}`}
               >
                 <td className="p-4 text-sm font-medium text-muted-foreground">
-                  {column.label}
+                  <div className="flex items-center gap-2">
+                    {column.label}
+                    {column.isCustom && (
+                      <Badge variant="outline" className="text-xs h-4 px-1 bg-primary/10 text-primary border-primary/20">
+                        自定义
+                      </Badge>
+                    )}
+                  </div>
                 </td>
                 {properties.map((p) => {
                   const value = getCellValue(p, column)

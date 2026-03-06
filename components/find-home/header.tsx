@@ -1,12 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon } from 'lucide-react'
+import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Heart } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { ViewMode } from '@/types/property'
 
 interface HeaderProps {
@@ -27,6 +33,15 @@ const modeLabels: Record<ViewMode, string> = {
   edit: '编辑模式',
 }
 
+// 主题配置
+type ThemeType = 'light' | 'minimal' | 'dark'
+
+const themeConfig: Record<ThemeType, { icon: typeof Sun; label: string; description: string }> = {
+  light: { icon: Heart, label: '温馨粉', description: '温暖舒适的粉色系' },
+  minimal: { icon: Sun, label: '极简', description: '简洁黑白风格' },
+  dark: { icon: Moon, label: '暗夜', description: '护眼深色模式' },
+}
+
 export function Header({
   viewMode,
   searchQuery,
@@ -45,17 +60,17 @@ export function Header({
   }, [])
 
   // 避免 hydration mismatch
-  const currentTheme = mounted ? theme : 'light'
+  const currentTheme = (mounted ? theme : 'light') as ThemeType
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6 shadow-sm">
       {/* Logo */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-md">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-md">
           <Home className="h-5 w-5 text-primary-foreground" />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          <span className="text-xl font-bold text-primary">
             寻家
           </span>
           <span className="text-[10px] text-muted-foreground -mt-0.5">找到温馨的家</span>
@@ -130,35 +145,40 @@ export function Header({
           <span className="hidden sm:inline">对比</span>
         </Button>
         
-        {/* 主题切换按钮 - 更醒目的设计 */}
-        <div className="flex items-center gap-1 rounded-full border border-border bg-muted p-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme('light')}
-            className={`h-8 w-8 rounded-full transition-all ${
-              currentTheme === 'light' 
-                ? 'bg-card text-primary shadow-sm' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Sun className="h-4 w-4" />
-            <span className="sr-only">亮色模式</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme('dark')}
-            className={`h-8 w-8 rounded-full transition-all ${
-              currentTheme === 'dark' 
-                ? 'bg-card text-primary shadow-sm' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Moon className="h-4 w-4" />
-            <span className="sr-only">暗色模式</span>
-          </Button>
-        </div>
+        {/* 三档主题切换按钮 */}
+        <TooltipProvider>
+          <div className="flex items-center rounded-full border border-border bg-muted p-1">
+            {(Object.keys(themeConfig) as ThemeType[]).map((themeKey) => {
+              const config = themeConfig[themeKey]
+              const Icon = config.icon
+              const isActive = currentTheme === themeKey
+              
+              return (
+                <Tooltip key={themeKey}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setTheme(themeKey)}
+                      className={`h-8 w-8 rounded-full transition-all ${
+                        isActive
+                          ? 'bg-card text-primary shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${themeKey === 'light' && isActive ? 'fill-current' : ''}`} />
+                      <span className="sr-only">{config.label}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p className="font-medium">{config.label}</p>
+                    <p className="text-xs text-muted-foreground">{config.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </div>
+        </TooltipProvider>
 
         <Avatar className="h-10 w-10 cursor-pointer border-2 border-border hover:border-primary transition-colors shadow-sm">
           <AvatarImage src="/placeholder-user.jpg" alt="用户头像" />

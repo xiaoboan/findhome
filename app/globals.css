@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* 小红书风格 - 温馨珊瑚红/粉色系配色 */
+/* 主题1: 温馨粉 (默认/light) - 小红书风格 */
 :root {
   --background: oklch(0.99 0.005 20);
   --foreground: oklch(0.25 0.02 20);
@@ -39,7 +39,6 @@
   --sidebar-border: oklch(0.92 0.01 20);
   --sidebar-ring: oklch(0.65 0.2 15);
   
-  /* 自定义强调色 */
   --success: oklch(0.7 0.15 155);
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.8 0.15 75);
@@ -48,46 +47,90 @@
   --info-foreground: oklch(1 0 0);
 }
 
-.dark {
-  --background: oklch(0.18 0.01 20);
-  --foreground: oklch(0.95 0.01 20);
-  --card: oklch(0.22 0.01 20);
-  --card-foreground: oklch(0.95 0.01 20);
-  --popover: oklch(0.22 0.01 20);
-  --popover-foreground: oklch(0.95 0.01 20);
-  --primary: oklch(0.7 0.18 15);
-  --primary-foreground: oklch(0.15 0.01 20);
-  --secondary: oklch(0.28 0.02 20);
-  --secondary-foreground: oklch(0.9 0.01 20);
-  --muted: oklch(0.28 0.01 20);
-  --muted-foreground: oklch(0.65 0.02 20);
-  --accent: oklch(0.32 0.03 15);
-  --accent-foreground: oklch(0.9 0.01 20);
+/* 主题2: 极简黑白 (minimal) */
+.minimal {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.15 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0 0);
+  --primary: oklch(0.15 0 0);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.25 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.94 0 0);
+  --accent-foreground: oklch(0.15 0 0);
   --destructive: oklch(0.5 0.2 25);
-  --destructive-foreground: oklch(0.95 0.01 20);
-  --border: oklch(0.32 0.01 20);
-  --input: oklch(0.32 0.01 20);
-  --ring: oklch(0.7 0.18 15);
-  --chart-1: oklch(0.7 0.18 15);
-  --chart-2: oklch(0.72 0.14 45);
-  --chart-3: oklch(0.68 0.12 160);
-  --chart-4: oklch(0.75 0.12 85);
-  --chart-5: oklch(0.65 0.14 280);
-  --sidebar: oklch(0.2 0.01 20);
-  --sidebar-foreground: oklch(0.95 0.01 20);
-  --sidebar-primary: oklch(0.7 0.18 15);
-  --sidebar-primary-foreground: oklch(0.15 0.01 20);
-  --sidebar-accent: oklch(0.28 0.02 20);
-  --sidebar-accent-foreground: oklch(0.9 0.01 20);
-  --sidebar-border: oklch(0.32 0.01 20);
-  --sidebar-ring: oklch(0.7 0.18 15);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.15 0 0);
+  --chart-1: oklch(0.15 0 0);
+  --chart-2: oklch(0.35 0 0);
+  --chart-3: oklch(0.55 0 0);
+  --chart-4: oklch(0.75 0 0);
+  --chart-5: oklch(0.45 0 0);
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0.15 0 0);
+  --sidebar-primary: oklch(0.15 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.94 0 0);
+  --sidebar-accent-foreground: oklch(0.15 0 0);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.15 0 0);
   
-  --success: oklch(0.68 0.14 155);
-  --success-foreground: oklch(0.15 0.01 20);
-  --warning: oklch(0.78 0.14 75);
-  --warning-foreground: oklch(0.2 0.02 75);
-  --info: oklch(0.62 0.11 250);
-  --info-foreground: oklch(0.95 0.01 20);
+  --success: oklch(0.55 0.15 155);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.7 0.15 75);
+  --warning-foreground: oklch(0.2 0 0);
+  --info: oklch(0.55 0.12 250);
+  --info-foreground: oklch(1 0 0);
+}
+
+/* 主题3: 暗夜模式 (dark) */
+.dark {
+  --background: oklch(0.12 0 0);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.16 0 0);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.16 0 0);
+  --popover-foreground: oklch(0.95 0 0);
+  --primary: oklch(0.85 0 0);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.22 0 0);
+  --secondary-foreground: oklch(0.9 0 0);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent: oklch(0.25 0 0);
+  --accent-foreground: oklch(0.95 0 0);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.95 0 0);
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.28 0 0);
+  --ring: oklch(0.85 0 0);
+  --chart-1: oklch(0.85 0 0);
+  --chart-2: oklch(0.65 0 0);
+  --chart-3: oklch(0.45 0 0);
+  --chart-4: oklch(0.75 0 0);
+  --chart-5: oklch(0.55 0 0);
+  --sidebar: oklch(0.14 0 0);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.85 0 0);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.22 0 0);
+  --sidebar-accent-foreground: oklch(0.9 0 0);
+  --sidebar-border: oklch(0.28 0 0);
+  --sidebar-ring: oklch(0.85 0 0);
+  
+  --success: oklch(0.65 0.12 155);
+  --success-foreground: oklch(0.12 0 0);
+  --warning: oklch(0.75 0.12 75);
+  --warning-foreground: oklch(0.15 0 0);
+  --info: oklch(0.6 0.1 250);
+  --info-foreground: oklch(0.95 0 0);
 }
 
 @theme inline {
@@ -146,7 +189,7 @@
   }
 }
 
-/* 自定义滚动条 - 亮色模式 */
+/* 自定义滚动条 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -157,21 +200,13 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.8 0.05 15);
+  background: var(--muted-foreground);
+  opacity: 0.3;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.7 0.1 15);
-}
-
-/* 自定义滚动条 - 暗色模式 */
-.dark ::-webkit-scrollbar-thumb {
-  background: oklch(0.4 0.03 20);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.5 0.05 15);
+  opacity: 0.5;
 }
 
 /* 表格行hover效果 */
@@ -180,9 +215,5 @@
 }
 
 .table-row-hover:hover {
-  background-color: oklch(0.97 0.02 15);
-}
-
-.dark .table-row-hover:hover {
-  background-color: oklch(0.26 0.02 20);
+  background-color: var(--accent);
 }

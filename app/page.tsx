@@ -253,6 +253,7 @@ export default function FindHomePage() {
             {showCompare ? (
               <PropertyCompare
                 properties={selectedProperties}
+                customColumns={columns.filter(col => col.isCustom)}
                 onClose={() => {
                   setViewMode('list')
                   setSelectedIds([])
