@@ -2,8 +2,10 @@
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant minimal (&:is(.minimal *));
 
 /* 主题1: 温馨粉 (默认/light) - 小红书风格 */
+html.light,
 :root {
   --background: oklch(0.99 0.005 20);
   --foreground: oklch(0.25 0.02 20);
@@ -48,7 +50,7 @@
 }
 
 /* 主题2: 极简黑白 (minimal) */
-.minimal {
+html.minimal {
   --background: oklch(1 0 0);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);
@@ -91,7 +93,7 @@
 }
 
 /* 主题3: 暗夜模式 (dark) */
-.dark {
+html.dark {
   --background: oklch(0.12 0 0);
   --foreground: oklch(0.95 0 0);
   --card: oklch(0.16 0 0);
