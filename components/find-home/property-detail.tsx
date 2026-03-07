@@ -129,7 +129,7 @@ export function PropertyDetail({
   const visibleCustomColumns = customColumns.filter(col => col.isCustom && col.visible)
 
   return (
-    <div className="relative h-full overflow-auto p-6">
+    <div className="relative h-full overflow-auto p-4 md:p-6">
       {/* 关闭按钮 */}
       <div className="mb-2 flex justify-end">
         <Button
@@ -273,7 +273,7 @@ export function PropertyDetail({
       {/* 核心信息卡片 */}
       <Card className="mb-6 border-border/50 shadow-sm">
         <CardContent className="p-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {infoItems.map((item) => (
               <div key={item.label} className="text-center">
                 <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-accent">

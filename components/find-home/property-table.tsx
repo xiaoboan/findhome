@@ -569,8 +569,8 @@ export function PropertyTable({
   return (
     <div className="flex h-full flex-col">
       {/* 列设置工具栏 */}
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between border-b border-border bg-card px-3 md:px-4 py-2 gap-2 overflow-x-auto">
+        <div className="flex items-center gap-2 shrink-0">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 border-border">
@@ -705,7 +705,7 @@ export function PropertyTable({
                   </TableCell>
                 ))}
                 <TableCell onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex items-center justify-end gap-1 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -765,8 +765,8 @@ export function PropertyTable({
       </div>
 
       {/* 底部统计和添加按钮 */}
-      <div className="flex items-center justify-between border-t border-border bg-card px-4 py-3">
-        <div className="flex gap-4 text-sm text-muted-foreground">
+      <div className="flex items-center justify-between border-t border-border bg-card px-3 md:px-4 py-2 md:py-3">
+        <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
           <span>共 <strong className="text-foreground">{stats.total}</strong> 套房源</span>
           <span>已看 <strong className="text-success">{stats.viewed}</strong> 套</span>
           {activeFilterCount > 0 && (

@@ -109,7 +109,7 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
         onChange={handleFileSelect}
       />
 
-      <div className="fixed bottom-6 right-6 z-50 pointer-events-none">
+      <div className="fixed bottom-16 md:bottom-6 right-4 md:right-6 z-50 pointer-events-none">
         <div
           className={`mb-3 flex flex-col gap-2 transition-all duration-200 ${
             isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4'
@@ -134,7 +134,7 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
 
         <Button
           size="icon"
-          className={`pointer-events-auto h-14 w-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 active:scale-95 ${
+          className={`pointer-events-auto h-12 w-12 md:h-14 md:w-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 active:scale-95 ${
             isOpen ? 'rotate-45' : ''
           }`}
           onClick={() => setIsOpen(!isOpen)}

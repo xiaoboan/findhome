@@ -13,8 +13,12 @@ import { FloatingActionButton } from '@/components/find-home/floating-action-but
 import { ParsedProperty } from '@/lib/ai'
 import { uploadImage } from '@/lib/storage'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function FindHomePage() {
+  const isMobile = useIsMobile()
   const { user, loading: authLoading } = useAuth()
   const {
     properties,
@@ -168,6 +172,143 @@ export default function FindHomePage() {
             <p className="text-muted-foreground">加载房源数据...</p>
           </div>
         </div>
+      ) : isMobile ? (
+        <>
+          {/* Mobile: table fills the screen, detail/compare opens as full-screen dialog */}
+          <div className="flex-1 overflow-hidden">
+            <PropertyTable
+              properties={filteredProperties}
+              allProperties={properties}
+              selectedIds={selectedIds}
+              activePropertyId={activePropertyId}
+              viewMode={viewMode}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              columns={columns}
+              columnFilters={columnFilters}
+              onColumnFiltersChange={setColumnFilters}
+              onColumnsChange={setColumns}
+              onSelect={(id: string, isMultiple: boolean) => {
+                setSelectedIds((prev) => {
+                  let next: string[]
+                  if (isMultiple) {
+                    next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+                  } else {
+                    next = prev.includes(id) ? prev.filter((i) => i !== id) : [id]
+                  }
+                  if (next.length >= 2) {
+                    setViewMode('compare')
+                  } else if (viewMode === 'compare') {
+                    setViewMode('list')
+                  }
+                  return next
+                })
+              }}
+              onViewDetail={(id: string) => {
+                setActivePropertyId(id)
+                if (viewMode !== 'edit') {
+                  setViewMode('detail')
+                }
+              }}
+              onEditDetail={(id: string) => {
+                setActivePropertyId(id)
+                setViewMode('edit')
+              }}
+              onToggleFavorite={toggleFavorite}
+              onDelete={(id: string) => {
+                deleteProperty(id)
+                if (activePropertyId === id) {
+                  setActivePropertyId(null)
+                  setViewMode('list')
+                }
+                setSelectedIds((prev) => prev.filter((i) => i !== id))
+              }}
+              onUpdateProperty={updateProperty}
+              onAddProperty={async () => {
+                await addProperty()
+                setViewMode('edit')
+              }}
+              onSort={(field: SortField) => {
+                if (sortField === field) {
+                  setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+                } else {
+                  setSortField(field)
+                  setSortOrder('desc')
+                }
+              }}
+              stats={stats}
+              showClearDemo={hasDemoData}
+              onClearDemoData={async () => {
+                await clearDemoProperties()
+                setActivePropertyId(null)
+                setSelectedIds([])
+                setViewMode('list')
+              }}
+            />
+          </div>
+
+          {/* Mobile detail dialog */}
+          <Dialog
+            open={!!showDetail}
+            onOpenChange={(open) => {
+              if (!open) {
+                if (viewMode !== 'edit') setViewMode('list')
+                setActivePropertyId(null)
+              }
+            }}
+          >
+            <DialogContent className="h-[100dvh] max-h-[100dvh] w-screen max-w-full rounded-none border-none p-0 gap-0" showCloseButton={false}>
+              <VisuallyHidden><DialogTitle>房源详情</DialogTitle></VisuallyHidden>
+              {showDetail && activeProperty && (
+                <div className="h-full overflow-auto">
+                  <PropertyDetail
+                    property={activeProperty}
+                    isEditMode={viewMode === 'edit'}
+                    customColumns={columns}
+                    onClose={() => {
+                      if (viewMode !== 'edit') setViewMode('list')
+                      setActivePropertyId(null)
+                    }}
+                    onToggleFavorite={() => toggleFavorite(activeProperty.id)}
+                    onFilterByTag={(tag: string) => setFilterTag((prev) => (prev === tag ? null : tag))}
+                    onUpdateProperty={(updates) => updateProperty(activeProperty.id, updates)}
+                  />
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Mobile compare dialog */}
+          <Dialog
+            open={!!showCompare}
+            onOpenChange={(open) => {
+              if (!open) {
+                setViewMode('list')
+                setSelectedIds([])
+              }
+            }}
+          >
+            <DialogContent className="h-[100dvh] max-h-[100dvh] w-screen max-w-full rounded-none border-none p-0 gap-0" showCloseButton={false}>
+              <VisuallyHidden><DialogTitle>房源对比</DialogTitle></VisuallyHidden>
+              {showCompare && (
+                <div className="h-full overflow-auto">
+                  <PropertyCompare
+                    properties={selectedProperties}
+                    customColumns={columns.filter(col => col.isCustom)}
+                    onClose={() => {
+                      setViewMode('list')
+                      setSelectedIds([])
+                    }}
+                    onViewDetail={(id: string) => {
+                      setActivePropertyId(id)
+                      setViewMode('detail')
+                    }}
+                  />
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </>
       ) : (
         <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden">
           <ResizablePanel defaultSize={showSidebar ? 55 : 100} minSize={30}>

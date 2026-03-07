@@ -127,8 +127,8 @@ findhome/
 - [ ] AI 对比分析（Vercel AI SDK + OpenAI）
 - [x] 截图识别自动录入房源（AI 多模态模型）
 - [x] 图片上传（Supabase Storage）
+- [x] 移动端适配（手机竖屏全屏详情/对比弹窗、响应式表头）
 - [ ] 导出 Excel/PDF
-- [ ] 移动端适配优化
 
 ## License
 

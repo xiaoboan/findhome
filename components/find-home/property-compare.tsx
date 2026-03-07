@@ -182,16 +182,18 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
   const customColumnCount = compareColumns.filter(col => col.isCustom).length
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="h-full overflow-auto p-4 md:p-6">
       {/* 关闭按钮 */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute right-4 top-20 z-10 rounded-full bg-card/80 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        <X className="h-5 w-5" />
-      </Button>
+      <div className="mb-2 flex justify-end">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full bg-card/80 backdrop-blur-sm shadow-sm"
+          onClick={onClose}
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
 
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-bold text-foreground">
@@ -297,22 +299,22 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
 
       {/* 对比表格 */}
       <div className="mb-6 overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full min-w-[600px] border-collapse">
+        <table className="w-full min-w-[400px] border-collapse">
           <thead>
             <tr className="border-b border-border">
-              <th className="bg-accent/50 p-4 text-left text-sm font-medium text-muted-foreground">
+              <th className="bg-accent/50 p-2 md:p-4 text-left text-sm font-medium text-muted-foreground">
                 对比项
               </th>
               {properties.map((p) => (
                 <th
                   key={p.id}
-                  className="bg-accent/50 p-4 text-center"
+                  className="bg-accent/50 p-2 md:p-4 text-center"
                 >
                   <div
                     className="cursor-pointer"
                     onClick={() => onViewDetail(p.id)}
                   >
-                    <div className="relative mx-auto mb-2 h-20 w-32 overflow-hidden rounded-lg shadow-sm bg-accent">
+                    <div className="relative mx-auto mb-2 h-16 w-24 md:h-20 md:w-32 overflow-hidden rounded-lg shadow-sm bg-accent">
                       {p.coverImage ? (
                         <Image
                           src={p.coverImage}
@@ -348,7 +350,7 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
                 key={column.key} 
                 className={`hover:bg-accent/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-accent/20'}`}
               >
-                <td className="p-4 text-sm font-medium text-muted-foreground">
+                <td className="p-2 md:p-4 text-sm font-medium text-muted-foreground">
                   <div className="flex items-center gap-2">
                     {column.label}
                     {column.isCustom && (
@@ -366,7 +368,7 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
                   return (
                     <td
                       key={p.id}
-                      className="p-4 text-center"
+                      className="p-2 md:p-4 text-center"
                     >
                       <span className={column.key === 'price' ? 'font-bold text-primary' : 'text-foreground'}>
                         {value !== undefined && value !== null && value !== '' ? `${value}${column.unit || ''}` : '-'}
@@ -385,7 +387,7 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
                 标签
               </td>
               {properties.map((p) => (
-                <td key={p.id} className="p-4">
+                <td key={p.id} className="p-2 md:p-4">
                   <div className="flex flex-wrap justify-center gap-1">
                     {p.tags.map((tag) => (
                       <Badge
@@ -408,7 +410,7 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
             <tr className="bg-accent/20">
               <td className="p-4 text-sm font-medium text-muted-foreground">状态</td>
               {properties.map((p) => (
-                <td key={p.id} className="p-4 text-center">
+                <td key={p.id} className="p-2 md:p-4 text-center">
                   <Badge
                     variant="secondary"
                     className={`${
