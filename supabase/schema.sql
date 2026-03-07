@@ -251,3 +251,25 @@ create policy "用户查看自己的列配置" on column_configs for select usin
 create policy "用户新增自己的列配置" on column_configs for insert with check (auth.uid() = user_id);
 create policy "用户更新自己的列配置" on column_configs for update using (auth.uid() = user_id);
 create policy "用户删除自己的列配置" on column_configs for delete using (auth.uid() = user_id);
+
+-- ============================================
+-- Storage: 房源图片 bucket
+-- ============================================
+-- 需要在 Supabase Dashboard → SQL Editor 中执行以下语句创建 bucket 和策略
+-- 或者在 Dashboard → Storage 中手动创建名为 property-images 的 public bucket
+
+insert into storage.buckets (id, name, public)
+values ('property-images', 'property-images', true)
+on conflict (id) do nothing;
+
+-- 用户只能上传到自己的目录 (路径以 userId/ 开头)
+create policy "用户上传自己的图片" on storage.objects for insert
+  with check (bucket_id = 'property-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 公开读取
+create policy "公开查看图片" on storage.objects for select
+  using (bucket_id = 'property-images');
+
+-- 用户只能删除自己目录下的图片
+create policy "用户删除自己的图片" on storage.objects for delete
+  using (bucket_id = 'property-images' and (storage.foldername(name))[1] = auth.uid()::text);

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check, Trash2 } from 'lucide-react'
+import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check, Trash2, Upload, Camera, Loader2 } from 'lucide-react'
 import { Property, PropertyStatus, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { uploadImage, deleteImage } from '@/lib/storage'
+import { useAuth } from '@/components/auth-provider'
 
 interface PropertyDetailProps {
   property: Property
@@ -45,6 +47,11 @@ export function PropertyDetail({
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null)
   const [newTag, setNewTag] = useState('')
   const [showAddTag, setShowAddTag] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [uploadingPhotos, setUploadingPhotos] = useState<string | null>(null) // recordId being uploaded
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const photosInputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
 
   const openLightbox = (photos: string[], index: number) => {
     setLightboxPhotos(photos)
@@ -64,6 +71,51 @@ export function PropertyDetail({
     onUpdateProperty({ tags: property.tags.filter(t => t !== tagToRemove) })
   }
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setUploadingCover(true)
+    try {
+      const url = await uploadImage(file, user.id, property.id)
+      onUpdateProperty({ coverImage: url })
+    } finally {
+      setUploadingCover(false)
+      e.target.value = ''
+    }
+  }
+
+  const handlePhotosUpload = async (e: React.ChangeEvent<HTMLInputElement>, recordId: string) => {
+    const files = e.target.files
+    if (!files || files.length === 0 || !user) return
+    setUploadingPhotos(recordId)
+    try {
+      const urls: string[] = []
+      for (const file of Array.from(files)) {
+        const url = await uploadImage(file, user.id, property.id)
+        urls.push(url)
+      }
+      const updatedRecords = property.viewingRecords.map(r =>
+        r.id === recordId ? { ...r, photos: [...r.photos, ...urls] } : r
+      )
+      onUpdateProperty({ viewingRecords: updatedRecords })
+    } finally {
+      setUploadingPhotos(null)
+      e.target.value = ''
+    }
+  }
+
+  const handleDeletePhoto = async (recordId: string, photoIndex: number) => {
+    const record = property.viewingRecords.find(r => r.id === recordId)
+    if (!record) return
+    const photoUrl = record.photos[photoIndex]
+    await deleteImage(photoUrl)
+    const updatedPhotos = record.photos.filter((_, i) => i !== photoIndex)
+    const updatedRecords = property.viewingRecords.map(r =>
+      r.id === recordId ? { ...r, photos: updatedPhotos } : r
+    )
+    onUpdateProperty({ viewingRecords: updatedRecords })
+  }
+
   const infoItems = [
     { icon: MapPin, label: '区域', key: 'district', value: property.district },
     { icon: Ruler, label: '面积', key: 'area', value: `${property.area}`, suffix: '㎡' },
@@ -77,16 +129,18 @@ export function PropertyDetail({
   const visibleCustomColumns = customColumns.filter(col => col.isCustom && col.visible)
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="relative h-full overflow-auto p-6">
       {/* 关闭按钮 */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute right-4 top-20 z-10 rounded-full bg-card/80 backdrop-blur-sm shadow-sm"
-        onClick={onClose}
-      >
-        <X className="h-5 w-5" />
-      </Button>
+      <div className="mb-2 flex justify-end">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full bg-card/80 backdrop-blur-sm shadow-sm"
+          onClick={onClose}
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
 
       {/* 编辑模式指示器 */}
       {isEditMode && (
@@ -106,6 +160,27 @@ export function PropertyDetail({
           crossOrigin="anonymous"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+        {isEditMode && (
+          <>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCoverUpload}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 h-9 gap-1.5 rounded-full bg-black/50 text-white hover:bg-black/70"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={uploadingCover}
+            >
+              {uploadingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {uploadingCover ? '上传中...' : '更换封面'}
+            </Button>
+          </>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -339,7 +414,7 @@ export function PropertyDetail({
             className="h-7 gap-1 text-xs hover:border-primary hover:text-primary"
             onClick={() => {
               const newRecord = {
-                id: Date.now().toString(),
+                id: crypto.randomUUID(),
                 date: new Date().toISOString().slice(0, 10),
                 visitNumber: property.viewingRecords.length + 1,
                 notes: '',
@@ -445,7 +520,7 @@ export function PropertyDetail({
                           {record.photos.map((photo, index) => (
                             <div
                               key={photo}
-                              className="relative aspect-square cursor-pointer overflow-hidden rounded-lg shadow-sm"
+                              className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg shadow-sm"
                               onClick={() => openLightbox(record.photos, index)}
                             >
                               <Image
@@ -455,8 +530,44 @@ export function PropertyDetail({
                                 className="object-cover transition-transform hover:scale-110"
                                 crossOrigin="anonymous"
                               />
+                              {isEditing && (
+                                <button
+                                  className="absolute top-1 right-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleDeletePhoto(record.id, index)
+                                  }}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           ))}
+                        </div>
+                      )}
+                      {isEditing && (
+                        <div className="mt-2">
+                          <input
+                            ref={photosInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => handlePhotosUpload(e, record.id)}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-full gap-1.5 border-dashed text-xs hover:border-primary hover:text-primary"
+                            onClick={() => photosInputRef.current?.click()}
+                            disabled={uploadingPhotos === record.id}
+                          >
+                            {uploadingPhotos === record.id ? (
+                              <><Loader2 className="h-3.5 w-3.5 animate-spin" />上传中...</>
+                            ) : (
+                              <><Camera className="h-3.5 w-3.5" />添加照片</>
+                            )}
+                          </Button>
                         </div>
                       )}
                     </CardContent>

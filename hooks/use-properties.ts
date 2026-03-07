@@ -85,6 +85,11 @@ export function useProperties() {
     if (!user) return
     const sb = getSupabase()
 
+    // 先更新本地状态，保证 UI 即时响应
+    setProperties((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    )
+
     // viewingRecords 单独处理
     if (updates.viewingRecords) {
       await syncViewingRecords(sb, id, updates.viewingRecords)
@@ -94,11 +99,6 @@ export function useProperties() {
     if (Object.keys(dbUpdates).length > 0) {
       await sb.from('properties').update(dbUpdates).eq('id', id)
     }
-
-    // 立即更新本地状态
-    setProperties((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-    )
   }, [user])
 
   // 同步看房记录

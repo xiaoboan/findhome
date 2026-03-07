@@ -18,11 +18,11 @@ export function FloatingActionButton({ onAddProperty }: FloatingActionButtonProp
   ]
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50 pointer-events-none">
       {/* 展开的操作按钮 */}
       <div
         className={`mb-3 flex flex-col gap-2 transition-all duration-200 ${
-          isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4'
         }`}
       >
         {actions.map((action) => (
@@ -45,7 +45,7 @@ export function FloatingActionButton({ onAddProperty }: FloatingActionButtonProp
       {/* 主按钮 */}
       <Button
         size="icon"
-        className={`h-14 w-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 active:scale-95 ${
+        className={`pointer-events-auto h-14 w-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 active:scale-95 ${
           isOpen ? 'rotate-45' : ''
         }`}
         onClick={() => setIsOpen(!isOpen)}
