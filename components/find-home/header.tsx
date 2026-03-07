@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2 } from 'lucide-react'
+import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +14,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { ViewMode } from '@/types/property'
 
 interface HeaderProps {
@@ -53,6 +59,7 @@ export function Header({
   onClearFilter,
 }: HeaderProps) {
   const { theme, setTheme } = useTheme()
+  const { user, signOut } = useAuth()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -185,12 +192,35 @@ export function Header({
           </div>
         </TooltipProvider>
 
-        <Avatar className="h-10 w-10 cursor-pointer border-2 border-border hover:border-primary transition-colors shadow-sm">
-          <AvatarImage src="/placeholder-user.jpg" alt="用户头像" />
-          <AvatarFallback className="bg-accent text-accent-foreground">
-            <User className="h-4 w-4" />
-          </AvatarFallback>
-        </Avatar>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Avatar className="h-10 w-10 cursor-pointer border-2 border-border hover:border-primary transition-colors shadow-sm">
+              <AvatarImage src="/placeholder-user.jpg" alt="用户头像" />
+              <AvatarFallback className="bg-accent text-accent-foreground">
+                <User className="h-4 w-4" />
+              </AvatarFallback>
+            </Avatar>
+          </PopoverTrigger>
+          <PopoverContent className="w-56" align="end">
+            <div className="space-y-3">
+              <div className="text-sm">
+                <p className="font-medium text-foreground truncate">
+                  {user?.user_metadata?.username || user?.email || '用户'}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 text-muted-foreground hover:text-destructive hover:border-destructive"
+                onClick={() => signOut()}
+              >
+                <LogOut className="h-4 w-4" />
+                退出登录
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </header>
   )
