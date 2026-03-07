@@ -38,6 +38,7 @@ export function dbToProperty(row: any, viewingRecords: any[], aiAnalysis: any | 
         }
       : undefined,
     customFields: row.custom_fields || {},
+    isDemo: row.is_demo ?? false,
   }
 }
 

@@ -176,12 +176,19 @@ export function useProperties() {
       }, { onConflict: 'user_id' })
   }, [user])
 
-  // 删除所有房源（清除示例数据）
-  const clearAllProperties = useCallback(async () => {
+  // 删除示例数据（只删除带 is_demo 标记的房源）
+  const clearDemoProperties = useCallback(async () => {
     if (!user) return
-    await getSupabase().from('properties').delete().eq('user_id', user.id)
-    setProperties([])
-  }, [user])
+    const demoIds = properties
+      .filter((p) => p.isDemo)
+      .map((p) => p.id)
+    if (demoIds.length === 0) return
+    await getSupabase()
+      .from('properties')
+      .delete()
+      .in('id', demoIds)
+    setProperties((prev) => prev.filter((p) => !demoIds.includes(p.id)))
+  }, [user, properties])
 
   return {
     properties,
@@ -191,7 +198,7 @@ export function useProperties() {
     updateProperty,
     deleteProperty,
     toggleFavorite,
-    clearAllProperties,
+    clearDemoProperties,
     setColumns: saveColumns,
     refetch: fetchProperties,
   }

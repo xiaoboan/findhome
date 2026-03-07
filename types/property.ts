@@ -44,6 +44,8 @@ export interface Property {
   }
   // 自定义字段存储
   customFields?: Record<string, string | number>
+  // 是否为示例数据
+  isDemo?: boolean
 }
 
 export type ViewMode = 'list' | 'detail' | 'compare' | 'edit'

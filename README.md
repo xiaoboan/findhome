@@ -30,7 +30,7 @@
 | next-themes | 主题切换（亮色/暗色/极简） |
 | pnpm | 包管理 |
 | Vercel | 部署平台 |
-| Supabase（待接入） | 数据库 + 用户认证 |
+| Supabase | 数据库 + 用户认证（邮箱注册/登录） |
 | Vercel AI SDK（待接入） | AI 对比分析 |
 
 ## 快速开始
@@ -39,6 +39,19 @@
 
 - Node.js 18+
 - pnpm
+
+### Supabase 配置
+
+1. 在 [Supabase](https://supabase.com) 创建项目
+2. 在 SQL Editor 中执行 `supabase/schema.sql` 建表
+3. 在项目根目录创建 `.env.local`：
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+新用户注册后会自动生成 6 条示例房源（带 `is_demo` 标记），可在界面中一键清除，不影响用户自建数据。
 
 ### 安装与运行
 
@@ -70,6 +83,7 @@ findhome/
 │   └── globals.css             # 全局样式
 ├── components/
 │   ├── find-home/              # 业务组件
+│   │   ├── login-page.tsx     # 登录/注册页
 │   │   ├── header.tsx          # 顶部导航
 │   │   ├── property-table.tsx  # 房源大表格
 │   │   ├── property-detail.tsx # 详情面板
@@ -77,19 +91,24 @@ findhome/
 │   │   └── floating-action-button.tsx
 │   └── ui/                     # shadcn/ui 组件
 ├── lib/
-│   ├── mock-data.ts            # 示例数据
+│   ├── supabase.ts            # Supabase 客户端
+│   ├── db-transforms.ts       # 数据库字段映射
 │   └── utils.ts
 ├── types/
 │   └── property.ts             # 类型定义
-└── hooks/                      # 自定义 Hooks
+├── hooks/
+│   └── use-properties.ts       # 房源数据 Hook
+└── supabase/
+    └── schema.sql              # 数据库建表 SQL
 ```
 
 ## 开发计划
 
 - [x] 产品规划 & 技术方案
 - [x] 前端 MVP（表格 + 编辑 + 对比 + 详情）
-- [ ] 接入 Supabase 数据库，数据持久化
-- [ ] 用户认证（Supabase Auth）
+- [x] 接入 Supabase 数据库，数据持久化
+- [x] 用户认证（Supabase Auth 邮箱登录）
+- [x] 注册自动生成示例数据，支持一键清除
 - [ ] AI 对比分析（Vercel AI SDK + OpenAI）
 - [ ] 图片上传（Supabase Storage）
 - [ ] 导出 Excel/PDF

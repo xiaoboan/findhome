@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ViewMode, SortField, SortOrder } from '@/types/property'
 import { useAuth } from '@/components/auth-provider'
 import { useProperties } from '@/hooks/use-properties'
@@ -23,7 +23,7 @@ export default function FindHomePage() {
     deleteProperty,
     toggleFavorite,
     setColumns,
-    clearAllProperties,
+    clearDemoProperties,
   } = useProperties()
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -34,15 +34,9 @@ export default function FindHomePage() {
   const [sortField, setSortField] = useState<SortField>('lastViewing')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({})
-  const [demoDismissed, setDemoDismissed] = useState(true)
 
-  // 检查是否已清除过示例数据
-  useEffect(() => {
-    if (user) {
-      const key = `findhome_demo_cleared_${user.id}`
-      setDemoDismissed(localStorage.getItem(key) === '1')
-    }
-  }, [user])
+  // 是否存在示例数据
+  const hasDemoData = properties.some((p) => p.isDemo)
 
   // 认证加载中
   if (authLoading) {
@@ -233,13 +227,9 @@ export default function FindHomePage() {
                   }
                 }}
                 stats={stats}
-                showClearDemo={!demoDismissed && properties.length > 0}
+                showClearDemo={hasDemoData}
                 onClearDemoData={async () => {
-                  await clearAllProperties()
-                  if (user) {
-                    localStorage.setItem(`findhome_demo_cleared_${user.id}`, '1')
-                  }
-                  setDemoDismissed(true)
+                  await clearDemoProperties()
                   setActivePropertyId(null)
                   setSelectedIds([])
                   setViewMode('list')
