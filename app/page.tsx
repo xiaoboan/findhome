@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ViewMode, SortField, SortOrder } from '@/types/property'
+import { ViewMode, SortField, SortOrder, Property } from '@/types/property'
 import { useAuth } from '@/components/auth-provider'
 import { useProperties } from '@/hooks/use-properties'
 import { LoginPage } from '@/components/find-home/login-page'
@@ -10,6 +10,7 @@ import { PropertyTable } from '@/components/find-home/property-table'
 import { PropertyDetail } from '@/components/find-home/property-detail'
 import { PropertyCompare } from '@/components/find-home/property-compare'
 import { FloatingActionButton } from '@/components/find-home/floating-action-button'
+import { ParsedProperty } from '@/lib/ai'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 
 export default function FindHomePage() {
@@ -283,10 +284,34 @@ export default function FindHomePage() {
         </ResizablePanelGroup>
       )}
 
-      <FloatingActionButton onAddProperty={async () => {
-        await addProperty()
-        setViewMode('edit')
-      }} />
+      <FloatingActionButton
+        columns={columns}
+        onAddProperty={async () => {
+          await addProperty()
+          setViewMode('edit')
+        }}
+        onAddFromScreenshot={async (data: ParsedProperty) => {
+          const newId = await addProperty()
+          if (newId) {
+            const updates: Partial<Property> = {}
+            if (data.name) updates.name = data.name
+            if (data.price) updates.price = data.price
+            if (data.pricePerSqm) updates.pricePerSqm = data.pricePerSqm
+            if (data.layout) updates.layout = data.layout
+            if (data.area) updates.area = data.area
+            if (data.district) updates.district = data.district
+            if (data.floor) updates.floor = data.floor
+            if (data.orientation) updates.orientation = data.orientation
+            if (data.decoration) updates.decoration = data.decoration
+            if (data.age) updates.age = data.age
+            if (data.tags?.length) updates.tags = data.tags
+            if (data.customFields) updates.customFields = data.customFields
+            await updateProperty(newId, updates)
+            setActivePropertyId(newId)
+            setViewMode('edit')
+          }
+        }}
+      />
     </div>
   )
 }
