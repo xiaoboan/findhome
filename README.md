@@ -18,6 +18,7 @@
 | **表格内编辑** | 切换编辑模式，直接在表格里修改数据，支持自定义列 |
 | **看房记录** | 结构化备注（文字 + 照片上传），时间轴展示 |
 | **多房源对比** | 勾选2-3套，一键进入对比模式，关键字段对齐，差异高亮 |
+| **截图识别** | 上传贝壳/链家等平台截图，AI 自动提取房源数据（含自定义列），一键录入 |
 | **AI分析** | 自动生成优缺点、适合人群、议价建议（待接入） |
 
 ## 技术栈
@@ -30,8 +31,8 @@
 | next-themes | 主题切换（亮色/暗色/极简） |
 | pnpm | 包管理 |
 | Vercel | 部署平台 |
-| Supabase | 数据库 + 用户认证（邮箱注册/登录） |
-| Vercel AI SDK（待接入） | AI 对比分析 |
+| Supabase | 数据库 + 用户认证（邮箱注册/登录）+ 图片存储 |
+| AI 多模态模型 | 截图识别提取房源数据（兼容 OpenAI 格式接口，可切换供应商） |
 
 ## 快速开始
 
@@ -49,6 +50,16 @@
 ```
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### AI 截图识别配置
+
+在 `.env.local` 中追加（兼容 OpenAI 格式的任意供应商，切换只需改这三行）：
+
+```
+AI_BASE_URL=https://api.siliconflow.cn/v1
+AI_API_KEY=your-api-key
+AI_MODEL=Qwen/Qwen2.5-VL-72B-Instruct
 ```
 
 新用户注册后会自动生成 6 条示例房源（带 `is_demo` 标记），可在界面中一键清除，不影响用户自建数据。
@@ -78,6 +89,7 @@ pnpm dev
 ```
 findhome/
 ├── app/                        # 页面
+│   ├── api/parse-screenshot/   # AI 截图识别 API Route
 │   ├── layout.tsx              # 根布局
 │   ├── page.tsx                # 主页面
 │   └── globals.css             # 全局样式
@@ -88,9 +100,10 @@ findhome/
 │   │   ├── property-table.tsx  # 房源大表格
 │   │   ├── property-detail.tsx # 详情面板
 │   │   ├── property-compare.tsx# 对比面板
-│   │   └── floating-action-button.tsx
+│   │   └── floating-action-button.tsx  # 悬浮按钮（手动添加/截图识别）
 │   └── ui/                     # shadcn/ui 组件
 ├── lib/
+│   ├── ai.ts                  # AI 截图识别（前端调用）
 │   ├── supabase.ts            # Supabase 客户端
 │   ├── storage.ts             # 图片上传/删除（Supabase Storage）
 │   ├── db-transforms.ts       # 数据库字段映射
@@ -111,6 +124,7 @@ findhome/
 - [x] 用户认证（Supabase Auth 邮箱登录）
 - [x] 注册自动生成示例数据，支持一键清除
 - [ ] AI 对比分析（Vercel AI SDK + OpenAI）
+- [x] 截图识别自动录入房源（AI 多模态模型）
 - [x] 图片上传（Supabase Storage）
 - [ ] 导出 Excel/PDF
 - [ ] 移动端适配优化
