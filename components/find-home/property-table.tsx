@@ -439,7 +439,7 @@ export function PropertyTable({
             />
           )
         }
-        return <span className="text-muted-foreground">{property.age}年</span>
+        return <span className="text-muted-foreground">{property.age ? `${property.age}年` : '-'}</span>
       
       case 'tags':
         return (

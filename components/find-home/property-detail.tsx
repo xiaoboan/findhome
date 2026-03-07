@@ -122,7 +122,7 @@ export function PropertyDetail({
     { icon: Building2, label: '楼层', key: 'floor', value: property.floor },
     { icon: Compass, label: '朝向', key: 'orientation', value: property.orientation },
     { icon: PaintBucket, label: '装修', key: 'decoration', value: property.decoration },
-    { icon: Calendar, label: '房龄', key: 'age', value: `${property.age}`, suffix: '年' },
+    { icon: Calendar, label: '房龄', key: 'age', value: property.age ? `${property.age}` : '', suffix: '年' },
   ]
 
   // 获取自定义字段的显示列表
@@ -161,7 +161,7 @@ export function PropertyDetail({
               src={property.coverImage}
               alt={property.name}
               fill
-              className="object-cover"
+              className="object-cover object-top"
               crossOrigin="anonymous"
             />
           </div>
@@ -294,7 +294,7 @@ export function PropertyDetail({
                   />
                 ) : (
                   <div className="font-semibold text-foreground">
-                    {item.value}{item.suffix || ''}
+                    {item.value ? `${item.value}${item.suffix || ''}` : '-'}
                   </div>
                 )}
               </div>
