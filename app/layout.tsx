@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   title: '寻家 - 温馨的看房记录工具',
   description: '帮助购房者记录看房信息、对比房源的专业工具，让寻家之路更轻松',
   generator: 'v0.app',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: '寻家',
+  },
   icons: {
     icon: [
       {
@@ -34,7 +40,7 @@ export const metadata: Metadata = {
         type: 'image/svg+xml',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: '/icons/apple-touch-icon.png',
   },
 }
 
