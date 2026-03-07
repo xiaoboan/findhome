@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check, Trash2, Upload, Camera, Loader2 } from 'lucide-react'
+import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check, Trash2, Upload, Camera, Loader2, ImageIcon } from 'lucide-react'
 import { Property, PropertyStatus, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -151,14 +151,21 @@ export function PropertyDetail({
       )}
 
       {/* 封面图 */}
-      <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-2xl shadow-lg">
-        <Image
-          src={property.coverImage}
-          alt={property.name}
-          fill
-          className="object-cover"
-          crossOrigin="anonymous"
-        />
+      <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-2xl shadow-lg bg-accent">
+        {property.coverImage ? (
+          <Image
+            src={property.coverImage}
+            alt={property.name}
+            fill
+            className="object-cover"
+            crossOrigin="anonymous"
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+            <ImageIcon className="mb-2 h-12 w-12" />
+            <span className="text-sm">{isEditMode ? '点击右上角上传封面图' : '暂无封面图'}</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         {isEditMode && (
           <>

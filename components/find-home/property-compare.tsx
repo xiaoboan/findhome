@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import Image from 'next/image'
-import { X, ArrowUp, ArrowDown, Sparkles, Settings2, Plus, Trash2 } from 'lucide-react'
+import { X, ArrowUp, ArrowDown, Sparkles, Settings2, Plus, Trash2, ImageIcon } from 'lucide-react'
 import { Property, CompareColumnConfig, DEFAULT_COMPARE_COLUMNS, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -312,14 +312,20 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
                     className="cursor-pointer"
                     onClick={() => onViewDetail(p.id)}
                   >
-                    <div className="relative mx-auto mb-2 h-20 w-32 overflow-hidden rounded-lg shadow-sm">
-                      <Image
-                        src={p.coverImage}
-                        alt={p.name}
-                        fill
-                        className="object-cover"
-                        crossOrigin="anonymous"
-                      />
+                    <div className="relative mx-auto mb-2 h-20 w-32 overflow-hidden rounded-lg shadow-sm bg-accent">
+                      {p.coverImage ? (
+                        <Image
+                          src={p.coverImage}
+                          alt={p.name}
+                          fill
+                          className="object-cover"
+                          crossOrigin="anonymous"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-muted-foreground">
+                          <ImageIcon className="h-8 w-8" />
+                        </div>
+                      )}
                       {p.isFavorite && (
                         <div className="absolute top-1 right-1 bg-primary/90 rounded-full p-1">
                           <svg className="h-3 w-3 text-primary-foreground fill-current" viewBox="0 0 24 24">
