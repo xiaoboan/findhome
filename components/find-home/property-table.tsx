@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, Eye, EyeOff, GripVertical } from 'lucide-react'
+import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, Eye, EyeOff, GripVertical, Filter } from 'lucide-react'
 import { Property, ViewMode, SortField, SortOrder, PropertyStatus, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Table,
   TableBody,
@@ -29,6 +30,17 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -39,12 +51,15 @@ import { Switch } from '@/components/ui/switch'
 
 interface PropertyTableProps {
   properties: Property[]
+  allProperties: Property[]
   selectedIds: string[]
   activePropertyId: string | null
   viewMode: ViewMode
   sortField: SortField
   sortOrder: SortOrder
   columns: ColumnConfig[]
+  columnFilters: Record<string, string[]>
+  onColumnFiltersChange: (filters: Record<string, string[]>) => void
   onColumnsChange: (columns: ColumnConfig[]) => void
   onSelect: (id: string, isMultiple: boolean) => void
   onViewDetail: (id: string) => void
@@ -70,12 +85,15 @@ const statusLabels = {
 
 export function PropertyTable({
   properties,
+  allProperties,
   selectedIds,
   activePropertyId,
   viewMode,
   sortField,
   sortOrder,
   columns,
+  columnFilters,
+  onColumnFiltersChange,
   onColumnsChange,
   onSelect,
   onViewDetail,
@@ -104,17 +122,113 @@ export function PropertyTable({
     )
   }
 
-  const SortableHeader = ({ field, children, sortable = true }: { field: SortField; children: React.ReactNode; sortable?: boolean }) => (
-    <TableHead
-      className={`whitespace-nowrap ${sortable ? 'cursor-pointer select-none hover:bg-accent' : ''} ${
-        sortField === field ? 'text-primary' : ''
-      }`}
-      onClick={() => sortable && onSort(field)}
-    >
-      {children}
-      {sortable && <SortIcon field={field} />}
-    </TableHead>
-  )
+  // 获取某列所有不重复的值（基于未筛选的全量数据）
+  const getUniqueValues = (columnKey: string): string[] => {
+    const values = new Set<string>()
+    allProperties.forEach((p) => {
+      const col = columns.find(c => c.key === columnKey)
+      if (col?.isCustom) {
+        const v = p.customFields?.[columnKey]
+        if (v !== undefined && v !== '') values.add(String(v))
+      } else if (columnKey === 'tags') {
+        p.tags.forEach(t => values.add(t))
+      } else if (columnKey === 'status') {
+        values.add(statusLabels[p.status])
+      } else {
+        const v = (p as unknown as Record<string, unknown>)[columnKey]
+        if (v !== undefined && v !== '' && v !== 0) values.add(String(v))
+      }
+    })
+    return Array.from(values).sort()
+  }
+
+  const activeFilterCount = Object.values(columnFilters).filter(v => v && v.length > 0).length
+
+  const SortableHeader = ({ field, children, sortable = true }: { field: SortField; children: React.ReactNode; sortable?: boolean }) => {
+    const filterValues = columnFilters[field] || []
+    const hasFilter = filterValues.length > 0
+
+    return (
+      <TableHead
+        className={`whitespace-nowrap ${sortable ? 'cursor-pointer select-none' : ''} ${
+          sortField === field ? 'text-primary' : ''
+        } group/header`}
+      >
+        <div className="flex items-center gap-0.5">
+          <span
+            className={`${sortable ? 'hover:text-primary' : ''}`}
+            onClick={() => sortable && onSort(field)}
+          >
+            {children}
+            {sortable && <SortIcon field={field} />}
+          </span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className={`ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded transition-opacity ${
+                  hasFilter
+                    ? 'opacity-100 text-primary'
+                    : 'opacity-0 group-hover/header:opacity-100 text-muted-foreground hover:text-primary'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Filter className="h-3 w-3" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-0" align="start" onClick={(e) => e.stopPropagation()}>
+              <div className="p-2 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">筛选</span>
+                  {hasFilter && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 text-xs text-muted-foreground px-1"
+                      onClick={() => {
+                        const next = { ...columnFilters }
+                        delete next[field]
+                        onColumnFiltersChange(next)
+                      }}
+                    >
+                      清除
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <ScrollArea className="max-h-48">
+                <div className="p-1">
+                  {getUniqueValues(field).map((val) => (
+                    <label
+                      key={val}
+                      className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={filterValues.includes(val)}
+                        onCheckedChange={(checked) => {
+                          const next = checked
+                            ? [...filterValues, val]
+                            : filterValues.filter(v => v !== val)
+                          onColumnFiltersChange({
+                            ...columnFilters,
+                            [field]: next,
+                          })
+                        }}
+                        className="h-3.5 w-3.5"
+                      />
+                      <span className="truncate">{val}</span>
+                    </label>
+                  ))}
+                  {getUniqueValues(field).length === 0 && (
+                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">暂无数据</div>
+                  )}
+                </div>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </TableHead>
+    )
+  }
 
   const handleAddTag = (propertyId: string) => {
     if (!newTagValue.trim()) return
@@ -510,6 +624,19 @@ export function PropertyTable({
           <span className="text-sm text-muted-foreground">
             显示 {visibleColumns.length} / {columns.length} 列
           </span>
+          {activeFilterCount > 0 && (
+            <span className="flex items-center gap-1 text-sm">
+              <Filter className="h-3 w-3 text-primary" />
+              <strong className="text-primary">{activeFilterCount}</strong>
+              <span className="text-muted-foreground">个筛选</span>
+              <button
+                className="text-xs text-muted-foreground hover:text-primary underline ml-1"
+                onClick={() => onColumnFiltersChange({})}
+              >
+                全部清除
+              </button>
+            </span>
+          )}
         </div>
       </div>
 
@@ -584,14 +711,34 @@ export function PropertyTable({
                     >
                       <Pencil className="h-4 w-4 text-muted-foreground" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:text-destructive"
-                      onClick={() => onDelete(property.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>确认删除</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            确定要删除「{property.name}」吗？删除后无法恢复。
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => onDelete(property.id)}
+                          >
+                            删除
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </TableCell>
               </TableRow>
@@ -605,6 +752,18 @@ export function PropertyTable({
         <div className="flex gap-4 text-sm text-muted-foreground">
           <span>共 <strong className="text-foreground">{stats.total}</strong> 套房源</span>
           <span>已看 <strong className="text-success">{stats.viewed}</strong> 套</span>
+          {activeFilterCount > 0 && (
+            <span className="flex items-center gap-1">
+              <Filter className="h-3 w-3 text-primary" />
+              <strong className="text-primary">{activeFilterCount}</strong> 个筛选
+              <button
+                className="text-xs text-muted-foreground hover:text-primary underline"
+                onClick={() => onColumnFiltersChange({})}
+              >
+                全部清除
+              </button>
+            </span>
+          )}
           {selectedIds.length > 0 && (
             <span>已选 <strong className="text-primary">{selectedIds.length}</strong> 套</span>
           )}

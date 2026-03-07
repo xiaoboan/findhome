@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check } from 'lucide-react'
+import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check, Trash2 } from 'lucide-react'
 import { Property, PropertyStatus, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -42,6 +42,7 @@ export function PropertyDetail({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null)
   const [newTag, setNewTag] = useState('')
   const [showAddTag, setShowAddTag] = useState(false)
 
@@ -329,87 +330,143 @@ export function PropertyDetail({
       </div>
 
       {/* 看房时间轴 */}
-      {property.viewingRecords.length > 0 && (
-        <div className="mb-6">
-          <h3 className="mb-4 text-sm font-medium text-muted-foreground">看房记录</h3>
+      <div className="mb-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground">看房记录</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1 text-xs hover:border-primary hover:text-primary"
+            onClick={() => {
+              const newRecord = {
+                id: Date.now().toString(),
+                date: new Date().toISOString().slice(0, 10),
+                visitNumber: property.viewingRecords.length + 1,
+                notes: '',
+                photos: [],
+              }
+              onUpdateProperty({
+                viewingRecords: [newRecord, ...property.viewingRecords],
+                lastViewing: newRecord.date,
+                status: 'viewed' as PropertyStatus,
+              })
+              setEditingRecordId(newRecord.id)
+            }}
+          >
+            <Plus className="h-3 w-3" />
+            添加记录
+          </Button>
+        </div>
+
+        {property.viewingRecords.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+            暂无看房记录，点击上方按钮添加
+          </div>
+        ) : (
           <div className="relative space-y-4 pl-6">
             <div className="absolute bottom-0 left-2 top-0 w-0.5 bg-gradient-to-b from-primary to-border" />
-            {property.viewingRecords.map((record) => (
-              <div key={record.id} className="relative">
-                <div className="absolute -left-4 top-1 h-3.5 w-3.5 rounded-full border-2 border-primary bg-card shadow-sm" />
-                <Card className="border-border/50 shadow-sm overflow-hidden">
-                  <CardHeader className="pb-2 bg-accent/30">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-primary">{record.date}</span>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
-                        第{record.visitNumber}次看房
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    {isEditMode ? (
-                      <Textarea
-                        value={record.notes}
-                        onChange={(e) => {
-                          const updatedRecords = property.viewingRecords.map(r =>
-                            r.id === record.id ? { ...r, notes: e.target.value } : r
-                          )
-                          onUpdateProperty({ viewingRecords: updatedRecords })
-                        }}
-                        className="mb-3 min-h-[60px] text-sm"
-                      />
-                    ) : (
-                      <p className="mb-3 text-sm text-muted-foreground leading-relaxed">{record.notes}</p>
-                    )}
-                    {record.photos.length > 0 && (
-                      <div className="mb-3 grid grid-cols-3 gap-2">
-                        {record.photos.map((photo, index) => (
-                          <div
-                            key={photo}
-                            className="relative aspect-square cursor-pointer overflow-hidden rounded-lg shadow-sm"
-                            onClick={() => openLightbox(record.photos, index)}
-                          >
-                            <Image
-                              src={photo}
-                              alt={`看房照片 ${index + 1}`}
-                              fill
-                              className="object-cover transition-transform hover:scale-110"
-                              crossOrigin="anonymous"
+            {property.viewingRecords.map((record) => {
+              const isEditing = editingRecordId === record.id || isEditMode
+              return (
+                <div key={record.id} className="relative">
+                  <div className="absolute -left-4 top-1 h-3.5 w-3.5 rounded-full border-2 border-primary bg-card shadow-sm" />
+                  <Card className="border-border/50 shadow-sm overflow-hidden">
+                    <CardHeader className="pb-2 bg-accent/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {isEditing ? (
+                            <Input
+                              type="date"
+                              value={record.date}
+                              onChange={(e) => {
+                                const updatedRecords = property.viewingRecords.map(r =>
+                                  r.id === record.id ? { ...r, date: e.target.value } : r
+                                )
+                                onUpdateProperty({ viewingRecords: updatedRecords })
+                              }}
+                              className="h-7 w-36 text-sm"
                             />
-                          </div>
-                        ))}
+                          ) : (
+                            <span className="font-medium text-primary">{record.date}</span>
+                          )}
+                          <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                            第{record.visitNumber}次看房
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {!isEditMode && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                              onClick={() => setEditingRecordId(isEditing ? null : record.id)}
+                            >
+                              {isEditing ? <Check className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                            </Button>
+                          )}
+                          {isEditing && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                const updatedRecords = property.viewingRecords.filter(r => r.id !== record.id)
+                                onUpdateProperty({ viewingRecords: updatedRecords })
+                                if (editingRecordId === record.id) setEditingRecordId(null)
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    {/* 快捷标签 */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {record.tags.layout.map((t) => (
-                        <Badge key={t} variant="outline" className="border-primary/30 text-xs text-primary bg-primary/5">
-                          户型: {t}
-                        </Badge>
-                      ))}
-                      {record.tags.location.map((t) => (
-                        <Badge key={t} variant="outline" className="border-success/30 text-xs text-success bg-success/5">
-                          位置: {t}
-                        </Badge>
-                      ))}
-                      {record.tags.price.map((t) => (
-                        <Badge key={t} variant="outline" className="border-warning/30 text-xs text-warning bg-warning/5">
-                          价格: {t}
-                        </Badge>
-                      ))}
-                      {record.tags.decoration.map((t) => (
-                        <Badge key={t} variant="outline" className="border-destructive/30 text-xs text-destructive bg-destructive/5">
-                          装修: {t}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
+                    </CardHeader>
+                    <CardContent className="pt-3">
+                      {isEditing ? (
+                        <Textarea
+                          value={record.notes}
+                          onChange={(e) => {
+                            const updatedRecords = property.viewingRecords.map(r =>
+                              r.id === record.id ? { ...r, notes: e.target.value } : r
+                            )
+                            onUpdateProperty({ viewingRecords: updatedRecords })
+                          }}
+                          className="mb-3 min-h-[80px] text-sm"
+                          placeholder="记录你的看房感受..."
+                          autoFocus={editingRecordId === record.id && !record.notes}
+                        />
+                      ) : (
+                        record.notes && (
+                          <p className="mb-3 text-sm text-muted-foreground leading-relaxed">{record.notes}</p>
+                        )
+                      )}
+                      {record.photos.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2">
+                          {record.photos.map((photo, index) => (
+                            <div
+                              key={photo}
+                              className="relative aspect-square cursor-pointer overflow-hidden rounded-lg shadow-sm"
+                              onClick={() => openLightbox(record.photos, index)}
+                            >
+                              <Image
+                                src={photo}
+                                alt={`看房照片 ${index + 1}`}
+                                fill
+                                className="object-cover transition-transform hover:scale-110"
+                                crossOrigin="anonymous"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )
+            })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* AI分析卡片 */}
       {property.aiAnalysis && (

@@ -6,12 +6,6 @@ export interface ViewingRecord {
   visitNumber: number
   notes: string
   photos: string[]
-  tags: {
-    layout: string[]
-    location: string[]
-    price: string[]
-    decoration: string[]
-  }
 }
 
 // 自定义列定义

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Heart } from 'lucide-react'
+import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,7 +37,7 @@ const modeLabels: Record<ViewMode, string> = {
 type ThemeType = 'light' | 'minimal' | 'dark'
 
 const themeConfig: Record<ThemeType, { icon: typeof Sun; label: string; description: string }> = {
-  light: { icon: Heart, label: '温馨粉', description: '温暖舒适的粉色系' },
+  light: { icon: Flower2, label: '温馨粉', description: '温暖舒适的粉色系' },
   minimal: { icon: Sun, label: '极简', description: '简洁黑白风格' },
   dark: { icon: Moon, label: '暗夜', description: '护眼深色模式' },
 }

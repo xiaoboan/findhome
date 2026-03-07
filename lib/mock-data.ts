@@ -29,12 +29,6 @@ export const mockProperties: Property[] = [
           'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop',
           'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=400&h=300&fit=crop',
         ],
-        tags: {
-          layout: ['方正', '动静分离'],
-          location: ['地铁近', '配套全'],
-          price: ['可议价'],
-          decoration: ['保养好'],
-        },
       },
       {
         id: 'v2',
@@ -44,12 +38,6 @@ export const mockProperties: Property[] = [
         photos: [
           'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&h=300&fit=crop',
         ],
-        tags: {
-          layout: ['方正'],
-          location: ['地铁近'],
-          price: [],
-          decoration: ['保养好'],
-        },
       },
     ],
     aiAnalysis: {
@@ -113,12 +101,6 @@ export const mockProperties: Property[] = [
           'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&h=300&fit=crop',
           'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=400&h=300&fit=crop',
         ],
-        tags: {
-          layout: ['大气', '功能分区合理'],
-          location: ['江景'],
-          price: ['价格偏高'],
-          decoration: ['豪华', '可直接入住'],
-        },
       },
     ],
     aiAnalysis: {
@@ -153,12 +135,6 @@ export const mockProperties: Property[] = [
         visitNumber: 1,
         notes: '地铁上盖位置非常好，但已经被其他买家签约了。',
         photos: [],
-        tags: {
-          layout: [],
-          location: ['地铁上盖'],
-          price: [],
-          decoration: [],
-        },
       },
     ],
     customFields: {},
@@ -215,12 +191,6 @@ export const mockProperties: Property[] = [
         photos: [
           'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=400&h=300&fit=crop',
         ],
-        tags: {
-          layout: ['方正', '得房率高'],
-          location: ['绿化好', '有儿童设施'],
-          price: ['性价比高'],
-          decoration: ['几乎全新'],
-        },
       },
     ],
     aiAnalysis: {

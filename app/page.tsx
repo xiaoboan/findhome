@@ -8,6 +8,7 @@ import { PropertyTable } from '@/components/find-home/property-table'
 import { PropertyDetail } from '@/components/find-home/property-detail'
 import { PropertyCompare } from '@/components/find-home/property-compare'
 import { FloatingActionButton } from '@/components/find-home/floating-action-button'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 
 export default function FindHomePage() {
   const [properties, setProperties] = useState<Property[]>(mockProperties)
@@ -19,6 +20,7 @@ export default function FindHomePage() {
   const [sortField, setSortField] = useState<SortField>('lastViewing')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
+  const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({})
 
   // 筛选和排序后的房源
   const filteredProperties = properties
@@ -26,7 +28,26 @@ export default function FindHomePage() {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.district.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesTag = !filterTag || p.tags.includes(filterTag)
-      return matchesSearch && matchesTag
+
+      // 列筛选
+      const matchesColumnFilters = Object.entries(columnFilters).every(([key, values]) => {
+        if (!values || values.length === 0) return true
+        const col = columns.find(c => c.key === key)
+        let cellValue: string
+        if (col?.isCustom) {
+          cellValue = String(p.customFields?.[key] ?? '')
+        } else if (key === 'tags') {
+          return values.some(v => p.tags.includes(v))
+        } else if (key === 'status') {
+          const statusLabels: Record<string, string> = { viewed: '已看', pending: '待看', sold: '已售' }
+          cellValue = statusLabels[p.status] || p.status
+        } else {
+          cellValue = String((p as unknown as Record<string, unknown>)[key] ?? '')
+        }
+        return values.includes(cellValue)
+      })
+
+      return matchesSearch && matchesTag && matchesColumnFilters
     })
     .sort((a, b) => {
       let comparison = 0
@@ -92,16 +113,22 @@ export default function FindHomePage() {
 
   // 选择房源
   const handleSelect = useCallback((id: string, isMultiple: boolean) => {
-    if (isMultiple) {
-      setSelectedIds((prev) =>
-        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-      )
-    } else {
-      setSelectedIds((prev) =>
-        prev.includes(id) ? prev.filter((i) => i !== id) : [id]
-      )
-    }
-  }, [])
+    setSelectedIds((prev) => {
+      let next: string[]
+      if (isMultiple) {
+        next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      } else {
+        next = prev.includes(id) ? prev.filter((i) => i !== id) : [id]
+      }
+      // 勾选 >= 2 自动进入对比模式，< 2 自动退出
+      if (next.length >= 2) {
+        setViewMode('compare')
+      } else if (viewMode === 'compare') {
+        setViewMode('list')
+      }
+      return next
+    })
+  }, [viewMode])
 
   // 点击查看详情
   const handleViewDetail = useCallback((id: string) => {
@@ -140,8 +167,9 @@ export default function FindHomePage() {
 
   // 添加新房源
   const handleAddProperty = useCallback(() => {
+    const newId = Date.now().toString()
     const newProperty: Property = {
-      id: Date.now().toString(),
+      id: newId,
       name: '新房源',
       price: 0,
       pricePerSqm: 0,
@@ -161,10 +189,8 @@ export default function FindHomePage() {
       customFields: {},
     }
     setProperties((prev) => [...prev, newProperty])
-    if (viewMode === 'edit') {
-      // 编辑模式下自动滚动到新行
-    }
-  }, [viewMode])
+    setViewMode('edit')
+  }, [])
 
   // 切换对比模式
   const handleToggleCompare = useCallback(() => {
@@ -220,66 +246,72 @@ export default function FindHomePage() {
         onClearFilter={() => setFilterTag(null)}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden">
         {/* 房源列表 */}
-        <div
-          className={`flex-shrink-0 overflow-auto border-r border-border transition-all duration-300 ${
-            showSidebar ? 'w-[450px]' : 'w-full'
-          }`}
-        >
-          <PropertyTable
-            properties={filteredProperties}
-            selectedIds={selectedIds}
-            activePropertyId={activePropertyId}
-            viewMode={viewMode}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            columns={columns}
-            onColumnsChange={setColumns}
-            onSelect={handleSelect}
-            onViewDetail={handleViewDetail}
-            onToggleFavorite={handleToggleFavorite}
-            onDelete={handleDelete}
-            onUpdateProperty={handleUpdateProperty}
-            onAddProperty={handleAddProperty}
-            onSort={handleSort}
-            stats={stats}
-          />
-        </div>
+        <ResizablePanel defaultSize={showSidebar ? 55 : 100} minSize={30}>
+          <div className="h-full overflow-auto">
+            <PropertyTable
+              properties={filteredProperties}
+              allProperties={properties}
+              selectedIds={selectedIds}
+              activePropertyId={activePropertyId}
+              viewMode={viewMode}
+              sortField={sortField}
+              sortOrder={sortOrder}
+              columns={columns}
+              columnFilters={columnFilters}
+              onColumnFiltersChange={setColumnFilters}
+              onColumnsChange={setColumns}
+              onSelect={handleSelect}
+              onViewDetail={handleViewDetail}
+              onToggleFavorite={handleToggleFavorite}
+              onDelete={handleDelete}
+              onUpdateProperty={handleUpdateProperty}
+              onAddProperty={handleAddProperty}
+              onSort={handleSort}
+              stats={stats}
+            />
+          </div>
+        </ResizablePanel>
 
         {/* 详情/对比区域 */}
         {showSidebar && (
-          <div className="flex-1 overflow-auto bg-background">
-            {showCompare ? (
-              <PropertyCompare
-                properties={selectedProperties}
-                customColumns={columns.filter(col => col.isCustom)}
-                onClose={() => {
-                  setViewMode('list')
-                  setSelectedIds([])
-                }}
-                onViewDetail={handleViewDetail}
-              />
-            ) : showDetail ? (
-              <PropertyDetail
-                property={activeProperty}
-                isEditMode={viewMode === 'edit'}
-                customColumns={columns}
-                onClose={() => {
-                  // 编辑模式下关闭详情不退出编辑模式
-                  if (viewMode !== 'edit') {
-                    setViewMode('list')
-                  }
-                  setActivePropertyId(null)
-                }}
-                onToggleFavorite={() => handleToggleFavorite(activeProperty.id)}
-                onFilterByTag={handleFilterByTag}
-                onUpdateProperty={(updates) => handleUpdateProperty(activeProperty.id, updates)}
-              />
-            ) : null}
-          </div>
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={45} minSize={25}>
+              <div className="h-full overflow-auto bg-background">
+                {showCompare ? (
+                  <PropertyCompare
+                    properties={selectedProperties}
+                    customColumns={columns.filter(col => col.isCustom)}
+                    onClose={() => {
+                      setViewMode('list')
+                      setSelectedIds([])
+                    }}
+                    onViewDetail={handleViewDetail}
+                  />
+                ) : showDetail ? (
+                  <PropertyDetail
+                    property={activeProperty}
+                    isEditMode={viewMode === 'edit'}
+                    customColumns={columns}
+                    onClose={() => {
+                      // 编辑模式下关闭详情不退出编辑模式
+                      if (viewMode !== 'edit') {
+                        setViewMode('list')
+                      }
+                      setActivePropertyId(null)
+                    }}
+                    onToggleFavorite={() => handleToggleFavorite(activeProperty.id)}
+                    onFilterByTag={handleFilterByTag}
+                    onUpdateProperty={(updates) => handleUpdateProperty(activeProperty.id, updates)}
+                  />
+                ) : null}
+              </div>
+            </ResizablePanel>
+          </>
         )}
-      </div>
+      </ResizablePanelGroup>
 
       <FloatingActionButton onAddProperty={handleAddProperty} />
     </div>
