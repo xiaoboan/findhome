@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, Eye, EyeOff, GripVertical, Filter } from 'lucide-react'
+import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, Eye, EyeOff, GripVertical, Filter, Sparkles } from 'lucide-react'
 import { Property, ViewMode, SortField, SortOrder, PropertyStatus, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
@@ -69,6 +69,8 @@ interface PropertyTableProps {
   onAddProperty: () => void
   onSort: (field: SortField) => void
   stats: { total: number; viewed: number }
+  onClearDemoData?: () => void
+  showClearDemo?: boolean
 }
 
 const statusColors = {
@@ -103,6 +105,8 @@ export function PropertyTable({
   onAddProperty,
   onSort,
   stats,
+  onClearDemoData,
+  showClearDemo,
 }: PropertyTableProps) {
   const isEditMode = viewMode === 'edit'
   const [editingTagId, setEditingTagId] = useState<string | null>(null)
@@ -624,6 +628,17 @@ export function PropertyTable({
           <span className="text-sm text-muted-foreground">
             显示 {visibleColumns.length} / {columns.length} 列
           </span>
+          {showClearDemo && onClearDemoData && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+              onClick={onClearDemoData}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              一键删除示例数据
+            </Button>
+          )}
           {activeFilterCount > 0 && (
             <span className="flex items-center gap-1 text-sm">
               <Filter className="h-3 w-3 text-primary" />

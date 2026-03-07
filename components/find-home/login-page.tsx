@@ -142,7 +142,11 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="mt-6 text-center">
+            <p className="text-xs text-muted-foreground/70">
+              为快速注册不会发送验证码，建议输入真实邮箱和手机号哦
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
             {isSignUp ? '已有账号？' : '没有账号？'}
             <button
               onClick={() => {
@@ -153,6 +157,7 @@ export function LoginPage() {
             >
               {isSignUp ? '去登录' : '注册一个'}
             </button>
+            </p>
           </div>
         </CardContent>
       </Card>

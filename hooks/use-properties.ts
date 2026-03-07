@@ -176,6 +176,13 @@ export function useProperties() {
       }, { onConflict: 'user_id' })
   }, [user])
 
+  // 删除所有房源（清除示例数据）
+  const clearAllProperties = useCallback(async () => {
+    if (!user) return
+    await getSupabase().from('properties').delete().eq('user_id', user.id)
+    setProperties([])
+  }, [user])
+
   return {
     properties,
     columns,
@@ -184,6 +191,7 @@ export function useProperties() {
     updateProperty,
     deleteProperty,
     toggleFavorite,
+    clearAllProperties,
     setColumns: saveColumns,
     refetch: fetchProperties,
   }
