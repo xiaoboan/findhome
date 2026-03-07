@@ -153,20 +153,25 @@ export function PropertyDetail({
       {/* 封面图 */}
       <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-2xl shadow-lg bg-accent">
         {property.coverImage ? (
-          <Image
-            src={property.coverImage}
-            alt={property.name}
-            fill
-            className="object-cover"
-            crossOrigin="anonymous"
-          />
+          <div
+            className="relative h-full w-full cursor-pointer"
+            onClick={() => openLightbox([property.coverImage], 0)}
+          >
+            <Image
+              src={property.coverImage}
+              alt={property.name}
+              fill
+              className="object-cover"
+              crossOrigin="anonymous"
+            />
+          </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
             <ImageIcon className="mb-2 h-12 w-12" />
             <span className="text-sm">{isEditMode ? '点击右上角上传封面图' : '暂无封面图'}</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
         {isEditMode && (
           <>
             <input
@@ -656,17 +661,17 @@ export function PropertyDetail({
 
       {/* 图片灯箱 */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-4xl border-none bg-black/95 p-0">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] border-none bg-black/95 p-0 gap-0" showCloseButton={false}>
           <VisuallyHidden>
             <DialogTitle>查看照片</DialogTitle>
           </VisuallyHidden>
-          <div className="relative aspect-video">
+          <div className="relative flex items-center justify-center" style={{ height: '90vh' }}>
             {lightboxPhotos[lightboxIndex] && (
-              <Image
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={lightboxPhotos[lightboxIndex]}
                 alt="查看照片"
-                fill
-                className="object-contain"
+                className="max-w-full max-h-full object-contain"
                 crossOrigin="anonymous"
               />
             )}
@@ -698,10 +703,20 @@ export function PropertyDetail({
                 </Button>
               </>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 bg-white/20 text-white hover:bg-white/40 rounded-full"
+              onClick={() => setLightboxOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
-          <div className="p-4 text-center text-white">
-            {lightboxIndex + 1} / {lightboxPhotos.length}
-          </div>
+          {lightboxPhotos.length > 1 && (
+            <div className="p-4 text-center text-white">
+              {lightboxIndex + 1} / {lightboxPhotos.length}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

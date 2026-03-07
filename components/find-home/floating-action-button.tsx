@@ -9,7 +9,7 @@ import { parseScreenshot, ParsedProperty } from '@/lib/ai'
 
 interface FloatingActionButtonProps {
   onAddProperty: () => void
-  onAddFromScreenshot: (data: ParsedProperty) => void
+  onAddFromScreenshot: (data: ParsedProperty, imageFile: File) => void
   columns: ColumnConfig[]
 }
 
@@ -20,6 +20,7 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
   const [result, setResult] = useState<ParsedProperty | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showDialog, setShowDialog] = useState(false)
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,6 +30,7 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
     // 重置
     setError(null)
     setResult(null)
+    setScreenshotFile(file)
     setPreview(URL.createObjectURL(file))
     setShowDialog(true)
     setParsing(true)
@@ -47,8 +49,8 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
   }
 
   const handleConfirm = () => {
-    if (result) {
-      onAddFromScreenshot(result)
+    if (result && screenshotFile) {
+      onAddFromScreenshot(result, screenshotFile)
     }
     handleClose()
   }
@@ -59,6 +61,7 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
     setResult(null)
     setError(null)
     setParsing(false)
+    setScreenshotFile(null)
   }
 
   const actions = [

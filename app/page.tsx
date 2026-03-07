@@ -11,6 +11,7 @@ import { PropertyDetail } from '@/components/find-home/property-detail'
 import { PropertyCompare } from '@/components/find-home/property-compare'
 import { FloatingActionButton } from '@/components/find-home/floating-action-button'
 import { ParsedProperty } from '@/lib/ai'
+import { uploadImage } from '@/lib/storage'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 
 export default function FindHomePage() {
@@ -290,7 +291,7 @@ export default function FindHomePage() {
           await addProperty()
           setViewMode('edit')
         }}
-        onAddFromScreenshot={async (data: ParsedProperty) => {
+        onAddFromScreenshot={async (data: ParsedProperty, imageFile: File) => {
           const newId = await addProperty()
           if (newId) {
             const updates: Partial<Property> = {}
@@ -306,6 +307,15 @@ export default function FindHomePage() {
             if (data.age) updates.age = data.age
             if (data.tags?.length) updates.tags = data.tags
             if (data.customFields) updates.customFields = data.customFields
+            // 将截图上传为封面图
+            if (user) {
+              try {
+                const coverUrl = await uploadImage(imageFile, user.id, newId)
+                updates.coverImage = coverUrl
+              } catch (e) {
+                console.error('封面图上传失败:', e)
+              }
+            }
             await updateProperty(newId, updates)
             setActivePropertyId(newId)
             setViewMode('edit')
