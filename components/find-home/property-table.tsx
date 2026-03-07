@@ -174,7 +174,7 @@ export function PropertyTable({
                 className={`ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded transition-opacity ${
                   hasFilter
                     ? 'opacity-100 text-primary'
-                    : 'opacity-0 group-hover/header:opacity-100 text-muted-foreground hover:text-primary'
+                    : 'md:opacity-0 md:group-hover/header:opacity-100 text-muted-foreground hover:text-primary'
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >

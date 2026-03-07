@@ -84,11 +84,11 @@ export function Header({
         <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-xl bg-primary shadow-md">
           <Home className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
         </div>
-        <div className="hidden sm:flex flex-col">
-          <span className="text-xl font-bold text-primary">
+        <div className="flex flex-col">
+          <span className="text-lg md:text-xl font-bold text-primary">
             寻家
           </span>
-          <span className="text-[10px] text-muted-foreground -mt-0.5">找到温馨的家</span>
+          <span className="hidden sm:block text-[10px] text-muted-foreground -mt-0.5">找到温馨的家</span>
         </div>
         <Badge
           variant="secondary"
