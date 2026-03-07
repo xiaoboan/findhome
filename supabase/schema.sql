@@ -19,7 +19,7 @@ create table profiles (
 -- ============================================
 -- 2. 房源主表
 -- ============================================
-create table properties (
+create table houses (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
   name text not null default '新房源',
@@ -48,7 +48,7 @@ create table properties (
 -- ============================================
 create table viewing_records (
   id uuid default gen_random_uuid() primary key,
-  property_id uuid references properties(id) on delete cascade not null,
+  property_id uuid references houses(id) on delete cascade not null,
   visit_number integer not null default 1,
   date date not null default current_date,
   notes text not null default '',
@@ -62,7 +62,7 @@ create table viewing_records (
 -- ============================================
 create table ai_analyses (
   id uuid default gen_random_uuid() primary key,
-  property_id uuid references properties(id) on delete cascade not null unique,
+  property_id uuid references houses(id) on delete cascade not null unique,
   pros text[] not null default '{}',
   cons text[] not null default '{}',
   suitable_for text[] not null default '{}',
@@ -85,8 +85,8 @@ create table column_configs (
 -- ============================================
 -- 索引
 -- ============================================
-create index idx_properties_user_id on properties(user_id);
-create index idx_properties_status on properties(status);
+create index idx_houses_user_id on houses(user_id);
+create index idx_houses_status on houses(status);
 create index idx_viewing_records_property_id on viewing_records(property_id);
 create index idx_ai_analyses_property_id on ai_analyses(property_id);
 
@@ -105,8 +105,8 @@ create trigger profiles_updated_at
   before update on profiles
   for each row execute function update_updated_at();
 
-create trigger properties_updated_at
-  before update on properties
+create trigger houses_updated_at
+  before update on houses
   for each row execute function update_updated_at();
 
 create trigger viewing_records_updated_at
@@ -134,27 +134,27 @@ begin
   values (new.id, new.email);
 
   -- 插入 6 条默认房源（is_demo 标记，方便一键清除）
-  insert into public.properties (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
+  insert into public.houses (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
   values (gen_random_uuid(), new.id, '万科金域华府', 520, 5.2, '3室2厅2卫', 100, '朝阳区', '15/28层', '南北通透', '精装修', 5, 'viewed', '{"采光好","南北通透","地铁近"}', '2024-03-15', true, true)
   returning id into p1_id;
 
-  insert into public.properties (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, is_demo)
+  insert into public.houses (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, is_demo)
   values (gen_random_uuid(), new.id, '龙湖春江郦城', 380, 4.75, '2室2厅1卫', 80, '海淀区', '8/18层', '东南', '毛坯', 3, 'pending', '{"房东急售","可议价","学区房"}', false, true)
   returning id into p2_id;
 
-  insert into public.properties (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
+  insert into public.houses (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
   values (gen_random_uuid(), new.id, '绿地海珀云庭', 680, 5.67, '4室2厅2卫', 120, '浦东新区', '22/30层', '南', '豪装', 2, 'viewed', '{"豪装","江景房","品牌开发商"}', '2024-03-10', true, true)
   returning id into p3_id;
 
-  insert into public.properties (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
+  insert into public.houses (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
   values (gen_random_uuid(), new.id, '保利天悦', 450, 5.0, '3室2厅1卫', 90, '天河区', '12/25层', '西南', '简装', 8, 'sold', '{"已售","地铁上盖"}', '2024-02-20', false, true)
   returning id into p4_id;
 
-  insert into public.properties (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, is_demo)
+  insert into public.houses (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, is_demo)
   values (gen_random_uuid(), new.id, '中海锦城', 320, 4.0, '2室1厅1卫', 80, '南山区', '6/20层', '北', '精装修', 10, 'pending', '{"低楼层","噪音大","价格便宜"}', false, true)
   returning id into p5_id;
 
-  insert into public.properties (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
+  insert into public.houses (id, user_id, name, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
   values (gen_random_uuid(), new.id, '融创壹号院', 580, 5.27, '3室2厅2卫', 110, '江北新区', '18/32层', '南北通透', '精装修', 1, 'viewed', '{"次新房","采光好","户型方正"}', '2024-03-12', true, true)
   returning id into p6_id;
 
@@ -207,7 +207,7 @@ create trigger on_auth_user_created
 -- RLS 行级安全策略
 -- ============================================
 alter table profiles enable row level security;
-alter table properties enable row level security;
+alter table houses enable row level security;
 alter table viewing_records enable row level security;
 alter table ai_analyses enable row level security;
 alter table column_configs enable row level security;
@@ -216,31 +216,31 @@ alter table column_configs enable row level security;
 create policy "用户查看自己的资料" on profiles for select using (auth.uid() = id);
 create policy "用户更新自己的资料" on profiles for update using (auth.uid() = id);
 
--- properties
-create policy "用户查看自己的房源" on properties for select using (auth.uid() = user_id);
-create policy "用户新增自己的房源" on properties for insert with check (auth.uid() = user_id);
-create policy "用户更新自己的房源" on properties for update using (auth.uid() = user_id);
-create policy "用户删除自己的房源" on properties for delete using (auth.uid() = user_id);
+-- houses
+create policy "用户查看自己的房源" on houses for select using (auth.uid() = user_id);
+create policy "用户新增自己的房源" on houses for insert with check (auth.uid() = user_id);
+create policy "用户更新自己的房源" on houses for update using (auth.uid() = user_id);
+create policy "用户删除自己的房源" on houses for delete using (auth.uid() = user_id);
 
 -- viewing_records
 create policy "用户查看自己房源的看房记录" on viewing_records for select
-  using (property_id in (select id from properties where user_id = auth.uid()));
+  using (property_id in (select id from houses where user_id = auth.uid()));
 create policy "用户添加自己房源的看房记录" on viewing_records for insert
-  with check (property_id in (select id from properties where user_id = auth.uid()));
+  with check (property_id in (select id from houses where user_id = auth.uid()));
 create policy "用户更新自己房源的看房记录" on viewing_records for update
-  using (property_id in (select id from properties where user_id = auth.uid()));
+  using (property_id in (select id from houses where user_id = auth.uid()));
 create policy "用户删除自己房源的看房记录" on viewing_records for delete
-  using (property_id in (select id from properties where user_id = auth.uid()));
+  using (property_id in (select id from houses where user_id = auth.uid()));
 
 -- ai_analyses
 create policy "用户查看自己房源的AI分析" on ai_analyses for select
-  using (property_id in (select id from properties where user_id = auth.uid()));
+  using (property_id in (select id from houses where user_id = auth.uid()));
 create policy "用户添加自己房源的AI分析" on ai_analyses for insert
-  with check (property_id in (select id from properties where user_id = auth.uid()));
+  with check (property_id in (select id from houses where user_id = auth.uid()));
 create policy "用户更新自己房源的AI分析" on ai_analyses for update
-  using (property_id in (select id from properties where user_id = auth.uid()));
+  using (property_id in (select id from houses where user_id = auth.uid()));
 create policy "用户删除自己房源的AI分析" on ai_analyses for delete
-  using (property_id in (select id from properties where user_id = auth.uid()));
+  using (property_id in (select id from houses where user_id = auth.uid()));
 
 -- column_configs
 create policy "用户查看自己的列配置" on column_configs for select using (auth.uid() = user_id);

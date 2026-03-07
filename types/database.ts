@@ -25,7 +25,7 @@ export interface Database {
           avatar_url?: string | null
         }
       }
-      properties: {
+      houses: {
         Row: {
           id: string
           user_id: string

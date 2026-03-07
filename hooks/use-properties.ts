@@ -23,7 +23,7 @@ export function useProperties() {
       { data: recordsData },
       { data: analysesData },
     ] = await Promise.all([
-      sb.from('properties').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+      sb.from('houses').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
       sb.from('viewing_records').select('*'),
       sb.from('ai_analyses').select('*'),
     ])
@@ -64,7 +64,7 @@ export function useProperties() {
     if (!user) return
     const sb = getSupabase()
     const { data, error } = await sb
-      .from('properties')
+      .from('houses')
       .insert({
         user_id: user.id,
         name: '新房源',
@@ -96,7 +96,7 @@ export function useProperties() {
 
     const dbUpdates = propertyToDbUpdate(updates)
     if (Object.keys(dbUpdates).length > 0) {
-      await sb.from('properties').update(dbUpdates).eq('id', id)
+      await sb.from('houses').update(dbUpdates).eq('id', id)
     }
   }, [user])
 
@@ -148,7 +148,7 @@ export function useProperties() {
   // 删除房源
   const deleteProperty = useCallback(async (id: string) => {
     if (!user) return
-    await getSupabase().from('properties').delete().eq('id', id)
+    await getSupabase().from('houses').delete().eq('id', id)
     setProperties((prev) => prev.filter((p) => p.id !== id))
   }, [user])
 
@@ -157,7 +157,7 @@ export function useProperties() {
     const prop = properties.find((p) => p.id === id)
     if (!prop || !user) return
     const newVal = !prop.isFavorite
-    await getSupabase().from('properties').update({ is_favorite: newVal }).eq('id', id)
+    await getSupabase().from('houses').update({ is_favorite: newVal }).eq('id', id)
     setProperties((prev) =>
       prev.map((p) => (p.id === id ? { ...p, isFavorite: newVal } : p))
     )
@@ -183,7 +183,7 @@ export function useProperties() {
       .map((p) => p.id)
     if (demoIds.length === 0) return
     await getSupabase()
-      .from('properties')
+      .from('houses')
       .delete()
       .in('id', demoIds)
     setProperties((prev) => prev.filter((p) => !demoIds.includes(p.id)))
