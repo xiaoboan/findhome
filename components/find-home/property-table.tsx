@@ -63,6 +63,7 @@ interface PropertyTableProps {
   onColumnsChange: (columns: ColumnConfig[]) => void
   onSelect: (id: string, isMultiple: boolean) => void
   onViewDetail: (id: string) => void
+  onEditDetail: (id: string) => void
   onToggleFavorite: (id: string) => void
   onDelete: (id: string) => void
   onUpdateProperty: (id: string, updates: Partial<Property>) => void
@@ -99,6 +100,7 @@ export function PropertyTable({
   onColumnsChange,
   onSelect,
   onViewDetail,
+  onEditDetail,
   onToggleFavorite,
   onDelete,
   onUpdateProperty,
@@ -657,7 +659,7 @@ export function PropertyTable({
 
       {/* 表格内容 */}
       <div className="flex-1 overflow-auto">
-        <Table>
+        <table className="w-full caption-bottom text-sm">
           <TableHeader className="sticky top-0 bg-card z-10">
             <TableRow className="border-b border-border hover:bg-transparent">
               <TableHead className="w-12 text-center">对比</TableHead>
@@ -685,7 +687,7 @@ export function PropertyTable({
                     : 'hover:bg-accent/50'
                 } ${selectedIds.includes(property.id) ? 'bg-accent' : ''}`}
                 onClick={(e) => {
-                  if (!isEditMode && !(e.target as HTMLElement).closest('button, input, [role="checkbox"], select, [data-radix-collection-item]')) {
+                  if (!(e.target as HTMLElement).closest('button, input, [role="checkbox"], select, [data-radix-collection-item]')) {
                     onViewDetail(property.id)
                   }
                 }}
@@ -722,7 +724,7 @@ export function PropertyTable({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => onViewDetail(property.id)}
+                      onClick={() => onEditDetail(property.id)}
                     >
                       <Pencil className="h-4 w-4 text-muted-foreground" />
                     </Button>
@@ -759,7 +761,7 @@ export function PropertyTable({
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+        </table>
       </div>
 
       {/* 底部统计和添加按钮 */}

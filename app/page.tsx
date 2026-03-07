@@ -169,7 +169,7 @@ export default function FindHomePage() {
       ) : (
         <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden">
           <ResizablePanel defaultSize={showSidebar ? 55 : 100} minSize={30}>
-            <div className="h-full overflow-auto">
+            <div className="h-full">
               <PropertyTable
                 properties={filteredProperties}
                 allProperties={properties}
@@ -203,6 +203,10 @@ export default function FindHomePage() {
                   if (viewMode !== 'edit') {
                     setViewMode('detail')
                   }
+                }}
+                onEditDetail={(id: string) => {
+                  setActivePropertyId(id)
+                  setViewMode('edit')
                 }}
                 onToggleFavorite={toggleFavorite}
                 onDelete={(id: string) => {
