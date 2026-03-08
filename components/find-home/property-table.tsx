@@ -777,8 +777,8 @@ export function PropertyTable({
                     collisionDetection={closestCenter}
                     onDragEnd={handleDragEnd}
                   >
-                    <SortableContext items={columns.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                      {columns.map((column) => (
+                    <SortableContext items={columns.filter(c => c.key !== 'id').map(c => c.id)} strategy={verticalListSortingStrategy}>
+                      {columns.filter(c => c.key !== 'id').map((column) => (
                         <SortableColumnItem
                           key={column.id}
                           column={column}
@@ -993,9 +993,9 @@ export function PropertyTable({
       </div>
       )}
 
-      {/* 底部统计和添加按钮 */}
-      <div className="flex items-center justify-between border-t border-border bg-card px-3 md:px-4 py-2 md:py-3">
-        <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
+      {/* 底部统计 */}
+      <div className="flex items-center border-t border-border bg-card px-3 md:px-4 py-2 md:py-3 gap-2 md:gap-4">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
           <span>共 <strong className="text-foreground">{stats.total}</strong> 套房源</span>
           <span>已看 <strong className="text-success">{stats.viewed}</strong> 套</span>
           {activeFilterCount > 0 && (
@@ -1014,17 +1014,6 @@ export function PropertyTable({
             <span>已选 <strong className="text-primary">{selectedIds.length}</strong> 套</span>
           )}
         </div>
-        {isEditMode && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onAddProperty}
-            className="gap-1 border-primary text-primary hover:bg-accent"
-          >
-            <Plus className="h-4 w-4" />
-            添加房源
-          </Button>
-        )}
       </div>
 
       {/* 添加自定义列对话框 */}

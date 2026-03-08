@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut } from 'lucide-react'
+import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut, Check } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -194,8 +194,8 @@ export function Header({
                   : 'border-border text-foreground hover:bg-accent hover:text-accent-foreground hover:border-primary'
               }`}
             >
-              <Edit3 className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs md:text-sm">编辑</span>
+              {viewMode === 'edit' ? <Check className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
+              <span className="hidden sm:inline text-xs md:text-sm">{viewMode === 'edit' ? '完成编辑' : '编辑'}</span>
             </Button>
             <Button
               variant={viewMode === 'compare' || isCompareSelecting ? 'default' : 'outline'}

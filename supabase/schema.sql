@@ -136,28 +136,28 @@ begin
   values (new.id, new.email);
 
   -- 插入 6 条默认房源（is_demo 标记，方便一键清除）
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
-  values (gen_random_uuid(), new.id, '万科金域华府', '12-1501', 520, 5.2, '3室2厅2卫', 100, '朝阳区', '15/28层', '南北通透', '精装修', 5, 'viewed', '{"采光好","南北通透","地铁近"}', '2024-03-15', true, true)
+  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, cover_image, is_demo)
+  values (gen_random_uuid(), new.id, '万科金域华府', '12-1501', 520, 5.2, '3室2厅2卫', 100, '朝阳区', '15/28层', '南北通透', '精装修', 5, 'viewed', '{"采光好","南北通透","地铁近"}', '2024-03-15', true, '/demo/wanke.jpg', true)
   returning id into p1_id;
 
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, is_demo)
-  values (gen_random_uuid(), new.id, '龙湖春江郦城', '5-802', 380, 4.75, '2室2厅1卫', 80, '海淀区', '8/18层', '东南', '毛坯', 3, 'pending', '{"房东急售","可议价","学区房"}', false, true)
+  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, cover_image, is_demo)
+  values (gen_random_uuid(), new.id, '龙湖春江郦城', '5-802', 380, 4.75, '2室2厅1卫', 80, '海淀区', '8/18层', '东南', '毛坯', 3, 'pending', '{"房东急售","可议价","学区房"}', false, '/demo/longhu.jpg', true)
   returning id into p2_id;
 
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
-  values (gen_random_uuid(), new.id, '绿地海珀云庭', '8-2203', 680, 5.67, '4室2厅2卫', 120, '浦东新区', '22/30层', '南', '豪装', 2, 'viewed', '{"豪装","江景房","品牌开发商"}', '2024-03-10', true, true)
+  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, cover_image, is_demo)
+  values (gen_random_uuid(), new.id, '绿地海珀云庭', '8-2203', 680, 5.67, '4室2厅2卫', 120, '浦东新区', '22/30层', '南', '豪装', 2, 'viewed', '{"豪装","江景房","品牌开发商"}', '2024-03-10', true, '/demo/lvdi.jpg', true)
   returning id into p3_id;
 
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
-  values (gen_random_uuid(), new.id, '保利天悦', '3-1204', 450, 5.0, '3室2厅1卫', 90, '天河区', '12/25层', '西南', '简装', 8, 'sold', '{"已售","地铁上盖"}', '2024-02-20', false, true)
+  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, cover_image, is_demo)
+  values (gen_random_uuid(), new.id, '保利天悦', '3-1204', 450, 5.0, '3室2厅1卫', 90, '天河区', '12/25层', '西南', '简装', 8, 'sold', '{"已售","地铁上盖"}', '2024-02-20', false, '/demo/baoli.jpg', true)
   returning id into p4_id;
 
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, is_demo)
-  values (gen_random_uuid(), new.id, '中海锦城', '17-603', 320, 4.0, '2室1厅1卫', 80, '南山区', '6/20层', '北', '精装修', 10, 'pending', '{"低楼层","噪音大","价格便宜"}', false, true)
+  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, cover_image, is_demo)
+  values (gen_random_uuid(), new.id, '中海锦城', '17-603', 320, 4.0, '2室1厅1卫', 80, '南山区', '6/20层', '北', '精装修', 10, 'pending', '{"低楼层","噪音大","价格便宜"}', false, '/demo/zhonghai.jpg', true)
   returning id into p5_id;
 
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, is_demo)
-  values (gen_random_uuid(), new.id, '融创壹号院', '21-1802', 580, 5.27, '3室2厅2卫', 110, '江北新区', '18/32层', '南北通透', '精装修', 1, 'viewed', '{"次新房","采光好","户型方正"}', '2024-03-12', true, true)
+  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, cover_image, is_demo)
+  values (gen_random_uuid(), new.id, '融创壹号院', '21-1802', 580, 5.27, '3室2厅2卫', 110, '江北新区', '18/32层', '南北通透', '精装修', 1, 'viewed', '{"次新房","采光好","户型方正"}', '2024-03-12', true, '/demo/rongchuang.jpg', true)
   returning id into p6_id;
 
   -- 插入看房记录
