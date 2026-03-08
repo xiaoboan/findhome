@@ -338,9 +338,6 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
                     </div>
                     <div className="font-medium text-foreground hover:text-primary transition-colors">
                       {p.name}
-                      {p.roomNumber && (
-                        <span className="ml-1 text-xs font-normal text-muted-foreground">({p.roomNumber})</span>
-                      )}
                     </div>
                   </div>
                 </th>
@@ -462,9 +459,6 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
                 <div className="flex-1">
                   <div className="font-medium text-foreground">
                     {p.name}
-                    {p.roomNumber && (
-                      <span className="ml-1 text-sm font-normal text-muted-foreground">({p.roomNumber})</span>
-                    )}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {p.price}万 · {p.area}㎡ · {p.layout}

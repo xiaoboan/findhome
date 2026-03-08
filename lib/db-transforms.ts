@@ -40,6 +40,7 @@ export function dbToProperty(row: any, viewingRecords: any[], aiAnalysis: any | 
       : undefined,
     customFields: row.custom_fields || {},
     isDemo: row.is_demo ?? false,
+    sourceUrl: row.source_url || '',
   }
 }
 
@@ -63,5 +64,6 @@ export function propertyToDbUpdate(updates: Partial<Property>) {
   if (updates.isFavorite !== undefined) result.is_favorite = updates.isFavorite
   if (updates.coverImage !== undefined) result.cover_image = updates.coverImage
   if (updates.customFields !== undefined) result.custom_fields = updates.customFields
+  if (updates.sourceUrl !== undefined) result.source_url = updates.sourceUrl
   return result
 }

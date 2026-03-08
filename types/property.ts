@@ -47,6 +47,8 @@ export interface Property {
   customFields?: Record<string, string | number>
   // 是否为示例数据
   isDemo?: boolean
+  // 房源链接（安居客、贝壳等平台）
+  sourceUrl?: string
 }
 
 export type ViewMode = 'list' | 'detail' | 'compare' | 'edit'
@@ -79,8 +81,9 @@ export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'decoration', key: 'decoration', label: '装修', visible: false, sortable: false, isCustom: false },
   { id: 'age', key: 'age', label: '房龄', visible: false, sortable: true, isCustom: false },
   { id: 'tags', key: 'tags', label: '核心标签', visible: true, sortable: false, isCustom: false },
-  { id: 'lastViewing', key: 'lastViewing', label: '最后看房', visible: true, sortable: true, isCustom: false },
+  { id: 'lastViewing', key: 'lastViewing', label: '最后看房', visible: false, sortable: true, isCustom: false },
   { id: 'status', key: 'status', label: '状态', visible: true, sortable: false, isCustom: false },
+  { id: 'sourceUrl', key: 'sourceUrl', label: '房源链接', visible: true, sortable: false, isCustom: false },
 ]
 
 // 对比列配置

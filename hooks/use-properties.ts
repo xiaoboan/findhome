@@ -51,6 +51,13 @@ export function useProperties() {
 
     if (data?.columns) {
       setColumns(data.columns as ColumnConfig[])
+    } else {
+      // 新用户没有列配置，主动写入默认配置
+      setColumns(DEFAULT_COLUMNS)
+      await sb.from('column_configs').upsert({
+        user_id: user.id,
+        columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS)),
+      }, { onConflict: 'user_id' })
     }
   }, [user])
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check, Trash2, Upload, Camera, Loader2, ImageIcon } from 'lucide-react'
+import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check, Trash2, Upload, Camera, Loader2, ImageIcon, ExternalLink, Link } from 'lucide-react'
 import { Property, PropertyStatus, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -117,12 +117,12 @@ export function PropertyDetail({
   }
 
   const infoItems = [
-    { icon: MapPin, label: '区域', key: 'district', value: property.district },
     { icon: Ruler, label: '面积', key: 'area', value: `${property.area}`, suffix: '㎡' },
     { icon: Building2, label: '楼层', key: 'floor', value: property.floor },
     { icon: Compass, label: '朝向', key: 'orientation', value: property.orientation },
     { icon: PaintBucket, label: '装修', key: 'decoration', value: property.decoration },
     { icon: Calendar, label: '房龄', key: 'age', value: property.age ? `${property.age}` : '', suffix: '年' },
+    { icon: MapPin, label: '区域', key: 'district', value: property.district },
   ]
 
   // 获取自定义字段的显示列表
@@ -282,6 +282,31 @@ export function PropertyDetail({
             </Select>
           </div>
         )}
+
+        {/* 房源链接 */}
+        {isEditMode ? (
+          <div className="mt-3 flex items-center gap-2">
+            <Link className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Input
+              value={property.sourceUrl || ''}
+              onChange={(e) => onUpdateProperty({ sourceUrl: e.target.value })}
+              className="h-8 flex-1"
+              placeholder="粘贴安居客、贝壳等平台房源链接"
+            />
+          </div>
+        ) : property.sourceUrl ? (
+          <div className="mt-3">
+            <a
+              href={property.sourceUrl.startsWith('http') ? property.sourceUrl : `https://${property.sourceUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              查看平台房源详情
+            </a>
+          </div>
+        ) : null}
       </div>
 
       {/* 核心信息卡片 */}
@@ -299,8 +324,8 @@ export function PropertyDetail({
                     type={item.key === 'area' || item.key === 'age' ? 'number' : 'text'}
                     value={item.value}
                     onChange={(e) => {
-                      const val = item.key === 'area' || item.key === 'age' 
-                        ? Number(e.target.value) 
+                      const val = item.key === 'area' || item.key === 'age'
+                        ? Number(e.target.value)
                         : e.target.value
                       onUpdateProperty({ [item.key]: val })
                     }}

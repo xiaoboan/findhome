@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, Eye, EyeOff, GripVertical, Filter, Sparkles } from 'lucide-react'
+import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, Eye, EyeOff, GripVertical, Filter, Sparkles, ExternalLink } from 'lucide-react'
 import { Property, ViewMode, SortField, SortOrder, PropertyStatus, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
@@ -332,14 +332,7 @@ export function PropertyTable({
             />
           )
         }
-        return (
-          <span className="font-medium text-foreground">
-            {property.name}
-            {property.roomNumber && (
-              <span className="ml-1 text-muted-foreground font-normal">({property.roomNumber})</span>
-            )}
-          </span>
-        )
+        return <span className="font-medium text-foreground">{property.name}</span>
 
       case 'roomNumber':
         if (isEditMode) {
@@ -581,7 +574,35 @@ export function PropertyTable({
             {statusLabels[property.status]}
           </Badge>
         )
-      
+
+      case 'sourceUrl':
+        if (isEditMode) {
+          return (
+            <Input
+              value={property.sourceUrl || ''}
+              onChange={(e) => onUpdateProperty(property.id, { sourceUrl: e.target.value })}
+              className="h-8 w-full min-w-[120px]"
+              placeholder="粘贴房源链接"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )
+        }
+        if (property.sourceUrl) {
+          return (
+            <a
+              href={property.sourceUrl!.startsWith('http') ? property.sourceUrl : `https://${property.sourceUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span className="text-xs">查看</span>
+            </a>
+          )
+        }
+        return <span className="text-muted-foreground">-</span>
+
       default:
         return <span className="text-muted-foreground">{String(value || '-')}</span>
     }

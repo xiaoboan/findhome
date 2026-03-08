@@ -46,6 +46,7 @@ export interface Database {
           is_favorite: boolean
           cover_image: string
           custom_fields: Record<string, string | number>
+          source_url: string
           created_at: string
           updated_at: string
         }
@@ -69,6 +70,7 @@ export interface Database {
           is_favorite?: boolean
           cover_image?: string
           custom_fields?: Record<string, string | number>
+          source_url?: string
         }
         Update: {
           name?: string
@@ -88,6 +90,7 @@ export interface Database {
           is_favorite?: boolean
           cover_image?: string
           custom_fields?: Record<string, string | number>
+          source_url?: string
         }
       }
       viewing_records: {

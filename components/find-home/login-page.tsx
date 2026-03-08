@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Home, Mail, Lock, User, Phone } from 'lucide-react'
+import { Home, Lock, User } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,40 +11,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 export function LoginPage() {
   const { signIn, signUp } = useAuth()
   const [isSignUp, setIsSignUp] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (!username.trim()) {
+      setError('请输入用户名')
+      return
+    }
+    if (!password) {
+      setError('请输入密码')
+      return
+    }
+    if (isSignUp && password.length < 6) {
+      setError('密码至少 6 位')
+      return
+    }
+
     setSubmitting(true)
+    // 用 用户名@findhome.local 作为 Supabase 邮箱，对用户透明
+    const fakeEmail = `${username.trim().toLowerCase()}@findhome.local`
 
     if (isSignUp) {
-      if (!email || !password) {
-        setError('请填写邮箱和密码')
-        setSubmitting(false)
-        return
-      }
-      if (password.length < 6) {
-        setError('密码至少 6 位')
-        setSubmitting(false)
-        return
-      }
-      const { error: err } = await signUp(email, password, username || undefined)
+      const { error: err } = await signUp(fakeEmail, password, username.trim())
       if (err) {
         setError(translateError(err))
       }
     } else {
-      if (!email || !password) {
-        setError('请填写邮箱和密码')
-        setSubmitting(false)
-        return
-      }
-      const { error: err } = await signIn(email, password)
+      const { error: err } = await signIn(fakeEmail, password)
       if (err) {
         setError(translateError(err))
       }
@@ -64,49 +62,16 @@ export function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="username">用户名（选填）</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="username"
-                      placeholder="你的昵称"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">手机号（选填）</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      placeholder="13800138000"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
             <div className="space-y-2">
-              <Label htmlFor="email">邮箱</Label>
+              <Label htmlFor="username">用户名</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  placeholder="请输入用户名"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
-                  required
                 />
               </div>
             </div>
@@ -118,11 +83,10 @@ export function LoginPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="至少 6 位"
+                  placeholder={isSignUp ? '至少 6 位' : '请输入密码'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
-                  required
                 />
               </div>
             </div>
@@ -143,20 +107,17 @@ export function LoginPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-xs text-muted-foreground/70">
-              为快速注册不会发送验证码，建议输入真实邮箱和手机号哦
-            </p>
-            <p className="mt-3 text-sm text-muted-foreground">
-            {isSignUp ? '已有账号？' : '没有账号？'}
-            <button
-              onClick={() => {
-                setIsSignUp(!isSignUp)
-                setError('')
-              }}
-              className="ml-1 font-medium text-primary hover:underline"
-            >
-              {isSignUp ? '去登录' : '注册一个'}
-            </button>
+            <p className="text-sm text-muted-foreground">
+              {isSignUp ? '已有账号？' : '没有账号？'}
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp)
+                  setError('')
+                }}
+                className="ml-1 font-medium text-primary hover:underline"
+              >
+                {isSignUp ? '去登录' : '注册一个'}
+              </button>
             </p>
           </div>
         </CardContent>
@@ -166,9 +127,9 @@ export function LoginPage() {
 }
 
 function translateError(msg: string): string {
-  if (msg.includes('Invalid login credentials')) return '邮箱或密码错误'
-  if (msg.includes('User already registered')) return '该邮箱已注册'
-  if (msg.includes('Email not confirmed')) return '登录失败，请检查邮箱密码'
+  if (msg.includes('Invalid login credentials')) return '用户名或密码错误'
+  if (msg.includes('User already registered')) return '该用户名已注册'
+  if (msg.includes('Email not confirmed')) return '登录失败，请检查用户名和密码'
   if (msg.includes('Password should be')) return '密码至少 6 位'
   return msg
 }
