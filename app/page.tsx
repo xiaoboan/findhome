@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { ViewMode, SortField, SortOrder, Property } from '@/types/property'
 import { useAuth } from '@/components/auth-provider'
 import { useProperties } from '@/hooks/use-properties'
@@ -9,7 +9,7 @@ import { Header } from '@/components/find-home/header'
 import { PropertyTable } from '@/components/find-home/property-table'
 import { PropertyDetail } from '@/components/find-home/property-detail'
 import { PropertyCompare } from '@/components/find-home/property-compare'
-import { FloatingActionButton } from '@/components/find-home/floating-action-button'
+import { FloatingActionButton, FloatingActionButtonRef } from '@/components/find-home/floating-action-button'
 import { ParsedProperty } from '@/lib/ai'
 import { uploadImage } from '@/lib/storage'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
@@ -41,6 +41,7 @@ export default function FindHomePage() {
   const [sortField, setSortField] = useState<SortField>('lastViewing')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({})
+  const fabRef = useRef<FloatingActionButtonRef>(null)
 
   // 是否存在示例数据
   const hasDemoData = properties.some((p) => p.isDemo)
@@ -247,6 +248,7 @@ export default function FindHomePage() {
                 }
               }}
               stats={stats}
+              onScreenshot={() => fabRef.current?.triggerScreenshot()}
               showClearDemo={hasDemoData}
               onClearDemoData={async () => {
                 await clearDemoProperties()
@@ -385,6 +387,7 @@ export default function FindHomePage() {
                   }
                 }}
                 stats={stats}
+                onScreenshot={() => fabRef.current?.triggerScreenshot()}
                 showClearDemo={hasDemoData}
                 onClearDemoData={async () => {
                   await clearDemoProperties()
@@ -438,6 +441,7 @@ export default function FindHomePage() {
       )}
 
       <FloatingActionButton
+        ref={fabRef}
         columns={columns}
         onAddProperty={async () => {
           await addProperty()

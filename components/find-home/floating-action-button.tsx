@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import { Plus, Camera, FileText, Sparkles, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -13,7 +13,11 @@ interface FloatingActionButtonProps {
   columns: ColumnConfig[]
 }
 
-export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, columns }: FloatingActionButtonProps) {
+export interface FloatingActionButtonRef {
+  triggerScreenshot: () => void
+}
+
+export const FloatingActionButton = forwardRef<FloatingActionButtonRef, FloatingActionButtonProps>(function FloatingActionButton({ onAddProperty, onAddFromScreenshot, columns }, ref) {
   const [isOpen, setIsOpen] = useState(false)
   const [parsing, setParsing] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
@@ -22,6 +26,10 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
   const [showDialog, setShowDialog] = useState(false)
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    triggerScreenshot: () => fileInputRef.current?.click(),
+  }))
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -215,7 +223,7 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
       </Dialog>
     </>
   )
-}
+})
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, GripVertical, Filter, Sparkles, ExternalLink, ImageIcon } from 'lucide-react'
+import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, GripVertical, Filter, Sparkles, ExternalLink, ImageIcon, Camera } from 'lucide-react'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -136,6 +136,7 @@ interface PropertyTableProps {
   onAddProperty: () => void
   onSort: (field: SortField) => void
   stats: { total: number; viewed: number }
+  onScreenshot?: () => void
   onClearDemoData?: () => void
   showClearDemo?: boolean
 }
@@ -174,6 +175,7 @@ export function PropertyTable({
   onAddProperty,
   onSort,
   stats,
+  onScreenshot,
   onClearDemoData,
   showClearDemo,
 }: PropertyTableProps) {
@@ -707,8 +709,16 @@ export function PropertyTable({
             <Input
               value={property.sourceUrl || ''}
               onChange={(e) => onUpdateProperty(property.id, { sourceUrl: e.target.value })}
+              onPaste={(e) => {
+                const text = e.clipboardData.getData('text')
+                const urlMatch = text.match(/https?:\/\/[^\s\u4e00-\u9fff\u3000-\u303f\uff00-\uffef<>"{}|\\^`[\]]+/)
+                if (urlMatch && urlMatch[0] !== text.trim()) {
+                  e.preventDefault()
+                  onUpdateProperty(property.id, { sourceUrl: urlMatch[0] })
+                }
+              }}
               className="h-8 w-full min-w-[120px]"
-              placeholder="粘贴房源链接"
+              placeholder="粘贴房源链接或分享文本"
               onClick={(e) => e.stopPropagation()}
             />
           )
@@ -810,9 +820,50 @@ export function PropertyTable({
             </span>
           )}
         </div>
+        {onScreenshot && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 shrink-0 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+            onClick={onScreenshot}
+          >
+            <Camera className="h-3.5 w-3.5" />
+            截图识别
+          </Button>
+        )}
       </div>
 
       {/* 表格内容 */}
+      {properties.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <Camera className="h-8 w-8 text-primary" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-medium">开始录入房源</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                在贝壳、链家等平台看到心仪房源？截图即可快速录入，AI 自动识别房源信息
+              </p>
+            </div>
+            {onScreenshot && (
+              <Button
+                className="gap-2"
+                onClick={onScreenshot}
+              >
+                <Camera className="h-4 w-4" />
+                截图识别录入
+              </Button>
+            )}
+            <button
+              className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4 transition-colors"
+              onClick={onAddProperty}
+            >
+              或手动添加房源
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="flex-1 overflow-auto">
         <table ref={tableRef} className="w-full caption-bottom text-sm" style={{ tableLayout: visibleColumns.some(c => c.width) ? 'fixed' : undefined }}>
           <TableHeader className="sticky top-0 bg-card z-10">
@@ -940,6 +991,7 @@ export function PropertyTable({
           </TableBody>
         </table>
       </div>
+      )}
 
       {/* 底部统计和添加按钮 */}
       <div className="flex items-center justify-between border-t border-border bg-card px-3 md:px-4 py-2 md:py-3">

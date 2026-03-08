@@ -290,8 +290,16 @@ export function PropertyDetail({
             <Input
               value={property.sourceUrl || ''}
               onChange={(e) => onUpdateProperty({ sourceUrl: e.target.value })}
+              onPaste={(e) => {
+                const text = e.clipboardData.getData('text')
+                const urlMatch = text.match(/https?:\/\/[^\s\u4e00-\u9fff\u3000-\u303f\uff00-\uffef<>"{}|\\^`[\]]+/)
+                if (urlMatch && urlMatch[0] !== text.trim()) {
+                  e.preventDefault()
+                  onUpdateProperty({ sourceUrl: urlMatch[0] })
+                }
+              }}
               className="h-8 flex-1"
-              placeholder="粘贴安居客、贝壳等平台房源链接"
+              placeholder="粘贴安居客、贝壳等平台房源链接或分享文本"
             />
           </div>
         ) : property.sourceUrl ? (
