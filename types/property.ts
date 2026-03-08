@@ -84,7 +84,7 @@ export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'tags', key: 'tags', label: '核心标签', visible: true, sortable: false, isCustom: false },
   { id: 'lastViewing', key: 'lastViewing', label: '最后看房', visible: false, sortable: true, isCustom: false },
   { id: 'status', key: 'status', label: '状态', visible: true, sortable: false, isCustom: false },
-  { id: 'sourceUrl', key: 'sourceUrl', label: '房源链接', visible: true, sortable: false, isCustom: false },
+  { id: 'sourceUrl', key: 'sourceUrl', label: '房源链接', visible: false, sortable: false, isCustom: false },
 ]
 
 // 对比列配置

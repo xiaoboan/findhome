@@ -1,9 +1,19 @@
 'use client'
 
-import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
-import { Plus, Camera, FileText, Sparkles, X, Loader2, CheckCircle2, RotateCw, ImageIcon, Minimize2 } from 'lucide-react'
+import { useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
+import { Plus, Camera, FileText, Sparkles, X, Loader2, CheckCircle2, RotateCw, ImageIcon, Minimize2, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { ColumnConfig } from '@/types/property'
 import { parseScreenshot, ParsedProperty } from '@/lib/ai'
 import { Progress } from '@/components/ui/progress'
@@ -18,7 +28,7 @@ export interface FloatingActionButtonRef {
   triggerScreenshot: () => void
 }
 
-type TaskStatus = 'pending' | 'parsing' | 'done' | 'error'
+type TaskStatus = 'pending' | 'parsing' | 'done' | 'error' | 'cancelled'
 
 interface ParseTask {
   id: string
@@ -32,13 +42,23 @@ interface ParseTask {
 export const FloatingActionButton = forwardRef<FloatingActionButtonRef, FloatingActionButtonProps>(function FloatingActionButton({ onAddProperty, onAddFromScreenshot, columns }, ref) {
   const [isOpen, setIsOpen] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
+  const [showStopConfirm, setShowStopConfirm] = useState(false)
   const [tasks, setTasks] = useState<ParseTask[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  const doneCount = tasks.filter(t => t.status === 'done').length
+  const errorCount = tasks.filter(t => t.status === 'error').length
+  const cancelledCount = tasks.filter(t => t.status === 'cancelled').length
+  const totalCount = tasks.length
+  const finishedCount = doneCount + errorCount + cancelledCount
+  const isAllFinished = totalCount > 0 && finishedCount === totalCount
+  const hasBackgroundTasks = totalCount > 0 && !isAllFinished && !showDialog
+  const progressPercent = totalCount > 0 ? Math.round((finishedCount / totalCount) * 100) : 0
 
   useImperativeHandle(ref, () => ({
     triggerScreenshot: () => {
-      // 有后台任务时，重新打开弹窗
-      if (hasBackgroundTasks) {
+      if (hasBackgroundTasks || (totalCount > 0 && !showDialog)) {
         setShowDialog(true)
       } else {
         fileInputRef.current?.click()
@@ -46,16 +66,12 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
     },
   }))
 
-  const doneCount = tasks.filter(t => t.status === 'done').length
-  const errorCount = tasks.filter(t => t.status === 'error').length
-  const totalCount = tasks.length
-  const isAllFinished = totalCount > 0 && doneCount + errorCount === totalCount
-  const hasBackgroundTasks = totalCount > 0 && !isAllFinished && !showDialog
-  const progressPercent = totalCount > 0 ? Math.round(((doneCount + errorCount) / totalCount) * 100) : 0
-
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
+
+    // 创建新的 AbortController
+    abortControllerRef.current = new AbortController()
 
     const newTasks: ParseTask[] = Array.from(files).map((file) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -67,16 +83,24 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
     setTasks(newTasks)
     setShowDialog(true)
 
-    // 清空 input，允许再次选择
     if (fileInputRef.current) fileInputRef.current.value = ''
 
-    // 并行识别所有图片
     for (const task of newTasks) {
       processTask(task.id, task.file, newTasks)
     }
   }
 
   const processTask = async (taskId: string, file: File, currentTasks?: ParseTask[]) => {
+    // 检查是否已被取消
+    if (abortControllerRef.current?.signal.aborted) {
+      setTasks(prev => prev.map(t =>
+        t.id === taskId && (t.status === 'pending' || t.status === 'parsing')
+          ? { ...t, status: 'cancelled' as TaskStatus }
+          : t
+      ))
+      return
+    }
+
     setTasks(prev => {
       const base = currentTasks || prev
       return base.map(t => t.id === taskId ? { ...t, status: 'parsing' as TaskStatus, error: undefined } : t)
@@ -84,15 +108,36 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
 
     try {
       const base64 = await fileToBase64(file)
+
+      // 再次检查取消状态
+      if (abortControllerRef.current?.signal.aborted) {
+        setTasks(prev => prev.map(t =>
+          t.id === taskId ? { ...t, status: 'cancelled' as TaskStatus } : t
+        ))
+        return
+      }
+
       const data = await parseScreenshot(base64, file.type, columns)
+
+      if (abortControllerRef.current?.signal.aborted) {
+        setTasks(prev => prev.map(t =>
+          t.id === taskId ? { ...t, status: 'cancelled' as TaskStatus } : t
+        ))
+        return
+      }
 
       setTasks(prev => prev.map(t =>
         t.id === taskId ? { ...t, status: 'done' as TaskStatus, result: data } : t
       ))
 
-      // 识别成功自动入库
       onAddFromScreenshot(data, file)
     } catch (err) {
+      if (abortControllerRef.current?.signal.aborted) {
+        setTasks(prev => prev.map(t =>
+          t.id === taskId ? { ...t, status: 'cancelled' as TaskStatus } : t
+        ))
+        return
+      }
       setTasks(prev => prev.map(t =>
         t.id === taskId ? { ...t, status: 'error' as TaskStatus, error: err instanceof Error ? err.message : '识别失败' } : t
       ))
@@ -102,25 +147,50 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
   const handleRetry = (taskId: string) => {
     const task = tasks.find(t => t.id === taskId)
     if (task) {
+      // 重试时如果 controller 已 abort，创建新的
+      if (abortControllerRef.current?.signal.aborted) {
+        abortControllerRef.current = new AbortController()
+      }
       processTask(taskId, task.file)
     }
   }
 
-  // 后台执行：关闭弹窗但保留任务状态
+  // 停止识别：取消所有未完成的任务
+  const handleStop = useCallback(() => {
+    abortControllerRef.current?.abort()
+    setTasks(prev => prev.map(t =>
+      t.status === 'pending' || t.status === 'parsing'
+        ? { ...t, status: 'cancelled' as TaskStatus }
+        : t
+    ))
+    setShowStopConfirm(false)
+  }, [])
+
+  // 后台执行
   const handleMinimize = () => {
     setShowDialog(false)
   }
 
-  // 彻底关闭：释放资源并清空任务
-  const handleClose = () => {
+  // 彻底关闭
+  const handleClose = useCallback(() => {
+    abortControllerRef.current?.abort()
     tasks.forEach(t => URL.revokeObjectURL(t.preview))
     setShowDialog(false)
+    setShowStopConfirm(false)
     setTasks([])
-  }
+  }, [tasks])
+
+  // 点击弹窗 X 按钮或外部关闭
+  const handleDialogClose = useCallback(() => {
+    if (isAllFinished) {
+      handleClose()
+    } else {
+      setShowStopConfirm(true)
+    }
+  }, [isAllFinished, handleClose])
 
   // 点击悬浮按钮
   const handleFabClick = () => {
-    // 有后台任务，打开任务弹窗
     if (hasBackgroundTasks || (totalCount > 0 && !showDialog)) {
       setShowDialog(true)
       return
@@ -128,7 +198,6 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
     setIsOpen(!isOpen)
   }
 
-  // 格式化单条识别结果的摘要
   const formatSummary = (data: ParsedProperty): string => {
     const parts: string[] = []
     if (data.name) parts.push(data.name)
@@ -199,7 +268,6 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
             )}
           </Button>
 
-          {/* 后台任务进度徽标 */}
           {hasBackgroundTasks && (
             <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1 text-[10px] font-bold text-white shadow-sm">
               {doneCount}/{totalCount}
@@ -209,14 +277,14 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
       </div>
 
       {/* 批量识别弹窗 */}
-      <Dialog open={showDialog} onOpenChange={(open) => { if (!open && isAllFinished) handleClose() }}>
+      <Dialog open={showDialog} onOpenChange={(open) => { if (!open) handleDialogClose() }}>
         <DialogContent className="sm:max-w-lg p-4 sm:p-6" onPointerDownOutside={(e) => { if (!isAllFinished) e.preventDefault() }}>
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between gap-2 pr-6">
               <span className="shrink-0">截图识别</span>
               <span className="text-sm font-normal text-muted-foreground text-right">
                 {isAllFinished
-                  ? `完成 ${doneCount}/${totalCount}${errorCount > 0 ? `，失败 ${errorCount}` : ''}`
+                  ? `完成 ${doneCount}/${totalCount}${errorCount > 0 ? `，失败 ${errorCount}` : ''}${cancelledCount > 0 ? `，已停止 ${cancelledCount}` : ''}`
                   : `识别中 ${doneCount + errorCount}/${totalCount}`
                 }
               </span>
@@ -224,25 +292,23 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
           </DialogHeader>
 
           <div className="space-y-3">
-            {/* 总体进度条 */}
             {!isAllFinished && (
               <Progress value={progressPercent} className="h-1.5" />
             )}
 
-            {/* 任务列表 */}
             <div className="space-y-2 max-h-64 sm:max-h-80 overflow-y-auto">
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-2.5 sm:gap-3 rounded-lg border border-border p-2 sm:p-2.5 transition-colors"
+                  className={`flex items-center gap-2.5 sm:gap-3 rounded-lg border border-border p-2 sm:p-2.5 transition-colors ${
+                    task.status === 'cancelled' ? 'opacity-50' : ''
+                  }`}
                 >
-                  {/* 缩略图 */}
                   <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={task.preview} alt="" className="h-full w-full object-cover object-top" />
                   </div>
 
-                  {/* 信息 */}
                   <div className="flex-1 min-w-0 overflow-hidden">
                     {task.status === 'done' && task.result ? (
                       <p className="text-xs sm:text-sm font-medium truncate">{formatSummary(task.result)}</p>
@@ -256,10 +322,10 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
                       {task.status === 'parsing' && '正在识别...'}
                       {task.status === 'done' && '已添加到房源列表'}
                       {task.status === 'error' && '识别失败'}
+                      {task.status === 'cancelled' && '已停止'}
                     </p>
                   </div>
 
-                  {/* 状态图标 */}
                   <div className="shrink-0">
                     {task.status === 'pending' && (
                       <ImageIcon className="h-4 w-4 text-muted-foreground" />
@@ -280,6 +346,9 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
                         <RotateCw className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                    {task.status === 'cancelled' && (
+                      <Square className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
                   </div>
                 </div>
               ))}
@@ -293,19 +362,51 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
                 完成
               </Button>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleMinimize}
-              >
-                <Minimize2 className="h-3.5 w-3.5" />
-                后台执行
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowStopConfirm(true)}
+                >
+                  <Square className="h-3 w-3 fill-current" />
+                  停止
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={handleMinimize}
+                >
+                  <Minimize2 className="h-3.5 w-3.5" />
+                  后台执行
+                </Button>
+              </>
             )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 停止确认弹窗 */}
+      <AlertDialog open={showStopConfirm} onOpenChange={setShowStopConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>停止识别</AlertDialogTitle>
+            <AlertDialogDescription>
+              还有 {totalCount - finishedCount} 张图片未完成识别，已完成的 {doneCount} 张不受影响。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>继续识别</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleStop}
+            >
+              停止识别
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 })

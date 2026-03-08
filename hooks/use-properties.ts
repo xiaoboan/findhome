@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Property, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { getSupabase } from '@/lib/supabase'
 import { dbToProperty, propertyToDbUpdate } from '@/lib/db-transforms'
+import { deleteImage } from '@/lib/storage'
 import { useAuth } from '@/components/auth-provider'
 
 export function useProperties() {
@@ -157,12 +158,23 @@ export function useProperties() {
     }
   }
 
-  // 删除房源
+  // 删除房源（同步清理 Storage 中的图片）
   const deleteProperty = useCallback(async (id: string) => {
     if (!user) return
+    const prop = properties.find((p) => p.id === id)
+    if (prop) {
+      // 收集所有需要删除的图片 URL
+      const imageUrls: string[] = []
+      if (prop.coverImage) imageUrls.push(prop.coverImage)
+      for (const record of prop.viewingRecords) {
+        imageUrls.push(...record.photos)
+      }
+      // 并行删除，不阻塞主流程
+      Promise.all(imageUrls.map((url) => deleteImage(url).catch(() => {})))
+    }
     await getSupabase().from('houses').delete().eq('id', id)
     setProperties((prev) => prev.filter((p) => p.id !== id))
-  }, [user])
+  }, [user, properties])
 
   // 切换收藏
   const toggleFavorite = useCallback(async (id: string) => {
@@ -187,18 +199,25 @@ export function useProperties() {
       }, { onConflict: 'user_id' })
   }, [user])
 
-  // 删除示例数据（只删除带 is_demo 标记的房源）
+  // 删除示例数据（同步清理图片）
   const clearDemoProperties = useCallback(async () => {
     if (!user) return
-    const demoIds = properties
-      .filter((p) => p.isDemo)
-      .map((p) => p.id)
-    if (demoIds.length === 0) return
+    const demoProps = properties.filter((p) => p.isDemo)
+    if (demoProps.length === 0) return
+    // 收集所有图片 URL
+    const imageUrls: string[] = []
+    for (const prop of demoProps) {
+      if (prop.coverImage) imageUrls.push(prop.coverImage)
+      for (const record of prop.viewingRecords) {
+        imageUrls.push(...record.photos)
+      }
+    }
+    Promise.all(imageUrls.map((url) => deleteImage(url).catch(() => {})))
     await getSupabase()
       .from('houses')
       .delete()
-      .in('id', demoIds)
-    setProperties((prev) => prev.filter((p) => !demoIds.includes(p.id)))
+      .in('id', demoProps.map((p) => p.id))
+    setProperties((prev) => prev.filter((p) => !p.isDemo))
   }, [user, properties])
 
   return {
