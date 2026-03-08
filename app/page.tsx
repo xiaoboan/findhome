@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { GitCompareArrows } from 'lucide-react'
 import { ViewMode, SortField, SortOrder, Property } from '@/types/property'
 import { useAuth } from '@/components/auth-provider'
 import { useProperties } from '@/hooks/use-properties'
@@ -16,6 +17,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { Button } from '@/components/ui/button'
 
 export default function FindHomePage() {
   const isMobile = useIsMobile()
@@ -207,10 +209,13 @@ export default function FindHomePage() {
                   } else {
                     next = prev.includes(id) ? prev.filter((i) => i !== id) : [id]
                   }
-                  if (next.length >= 2) {
-                    setViewMode('compare')
-                  } else if (viewMode === 'compare') {
-                    setViewMode('list')
+                  // 移动端不自动弹出对比，让用户手动确认
+                  if (!isMobile) {
+                    if (next.length >= 2) {
+                      setViewMode('compare')
+                    } else if (viewMode === 'compare') {
+                      setViewMode('list')
+                    }
                   }
                   return next
                 })
@@ -259,7 +264,35 @@ export default function FindHomePage() {
             />
           </div>
 
-          {/* Mobile detail dialog */}
+          {/* 移动端对比选择浮动条 */}
+          {isMobile && selectedIds.length >= 2 && viewMode !== 'compare' && (
+            <div className="fixed bottom-20 left-4 right-4 z-40 flex items-center justify-between rounded-2xl bg-card border border-border shadow-xl px-4 py-3">
+              <div className="flex items-center gap-2 text-sm">
+                <GitCompareArrows className="h-4 w-4 text-primary" />
+                <span>已选 <strong className="text-primary">{selectedIds.length}</strong> 套房源</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-muted-foreground"
+                  onClick={() => {
+                    setSelectedIds([])
+                    setIsCompareSelecting(false)
+                  }}
+                >
+                  取消
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 gap-1.5"
+                  onClick={() => setViewMode('compare')}
+                >
+                  开始对比
+                </Button>
+              </div>
+            </div>
+          )}
           <Dialog
             open={!!showDetail}
             onOpenChange={(open) => {

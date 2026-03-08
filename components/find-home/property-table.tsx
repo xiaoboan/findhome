@@ -283,7 +283,7 @@ export function PropertyTable({
                 className={`ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded transition-opacity ${
                   hasFilter
                     ? 'opacity-100 text-primary'
-                    : 'md:opacity-0 md:group-hover/header:opacity-100 text-muted-foreground hover:text-primary'
+                    : 'opacity-40 hover:opacity-100 text-muted-foreground hover:text-primary'
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -820,17 +820,28 @@ export function PropertyTable({
             </span>
           )}
         </div>
-        {onScreenshot && (
+        <div className="flex items-center gap-2 shrink-0">
+          {onScreenshot && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 shrink-0 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+              onClick={onScreenshot}
+            >
+              <Camera className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">截图识别</span>
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
             className="gap-1.5 shrink-0 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
-            onClick={onScreenshot}
+            onClick={onAddProperty}
           >
-            <Camera className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">截图识别</span>
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">手动添加</span>
           </Button>
-        )}
+        </div>
       </div>
 
       {/* 表格内容 */}
@@ -933,7 +944,7 @@ export function PropertyTable({
                   </TableCell>
                 ))}
                 <TableCell onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-1 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
+                  <div className="flex items-center justify-end gap-1 opacity-40 transition-opacity hover:opacity-100 group-hover:opacity-100">
                     <Button
                       variant="ghost"
                       size="icon"
