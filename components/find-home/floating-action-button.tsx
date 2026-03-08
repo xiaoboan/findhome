@@ -210,7 +210,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
 
       {/* 批量识别弹窗 */}
       <Dialog open={showDialog} onOpenChange={(open) => { if (!open && isAllFinished) handleClose() }}>
-        <DialogContent className="sm:max-w-lg" onPointerDownOutside={(e) => { if (!isAllFinished) e.preventDefault() }}>
+        <DialogContent className="sm:max-w-lg p-4 sm:p-6" onPointerDownOutside={(e) => { if (!isAllFinished) e.preventDefault() }}>
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between gap-2 pr-6">
               <span className="shrink-0">截图识别</span>
@@ -243,15 +243,15 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
                   </div>
 
                   {/* 信息 */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     {task.status === 'done' && task.result ? (
-                      <p className="text-sm font-medium truncate">{formatSummary(task.result)}</p>
+                      <p className="text-xs sm:text-sm font-medium truncate">{formatSummary(task.result)}</p>
                     ) : task.status === 'error' ? (
-                      <p className="text-sm text-destructive truncate">{task.error}</p>
+                      <p className="text-xs sm:text-sm text-destructive truncate">{task.error}</p>
                     ) : (
-                      <p className="text-sm text-muted-foreground truncate">{task.file.name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{task.file.name}</p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
                       {task.status === 'pending' && '等待中...'}
                       {task.status === 'parsing' && '正在识别...'}
                       {task.status === 'done' && '已添加到房源列表'}
@@ -287,18 +287,19 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
           </div>
 
           {/* 底部按钮 */}
-          <div className="flex justify-end gap-2 pt-1">
+          <div className="flex justify-end gap-2">
             {isAllFinished ? (
-              <Button onClick={handleClose}>
+              <Button size="sm" onClick={handleClose}>
                 完成
               </Button>
             ) : (
               <Button
                 variant="outline"
-                className="gap-2"
+                size="sm"
+                className="gap-1.5"
                 onClick={handleMinimize}
               >
-                <Minimize2 className="h-4 w-4" />
+                <Minimize2 className="h-3.5 w-3.5" />
                 后台执行
               </Button>
             )}
