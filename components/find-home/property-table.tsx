@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, Eye, EyeOff, GripVertical, Filter, Sparkles, ExternalLink } from 'lucide-react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, GripVertical, Filter, Sparkles, ExternalLink } from 'lucide-react'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Property, ViewMode, SortField, SortOrder, PropertyStatus, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
@@ -10,7 +13,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -48,6 +50,69 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
+
+// 可拖拽的列设置项
+function SortableColumnItem({
+  column,
+  onToggle,
+  onDelete,
+}: {
+  column: ColumnConfig
+  onToggle: (id: string) => void
+  onDelete: (id: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: column.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-accent ${isDragging ? 'bg-accent shadow-sm' : ''}`}
+    >
+      <div className="flex items-center gap-2">
+        <GripVertical
+          className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
+          {...attributes}
+          {...listeners}
+        />
+        <span className={`text-sm ${!column.visible ? 'text-muted-foreground' : ''}`}>{column.label}</span>
+        {column.isCustom && (
+          <Badge variant="outline" className="text-xs h-5">自定义</Badge>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <Switch
+          checked={column.visible}
+          onCheckedChange={() => onToggle(column.id)}
+        />
+        {column.isCustom && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+            onClick={() => onDelete(column.id)}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 interface PropertyTableProps {
   properties: Property[]
@@ -117,6 +182,45 @@ export function PropertyTable({
   const [newColumnName, setNewColumnName] = useState('')
   const [newColumnType, setNewColumnType] = useState<'text' | 'number' | 'date'>('text')
 
+  // 列宽调整
+  const resizingRef = useRef<{ columnId: string; startX: number; startWidth: number } | null>(null)
+  const tableRef = useRef<HTMLTableElement>(null)
+
+  const handleResizeStart = useCallback((e: React.MouseEvent, columnId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const th = (e.target as HTMLElement).closest('th')
+    if (!th) return
+    const startWidth = th.getBoundingClientRect().width
+    resizingRef.current = { columnId, startX: e.clientX, startWidth }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [])
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingRef.current) return
+      const { columnId, startX, startWidth } = resizingRef.current
+      const diff = e.clientX - startX
+      const newWidth = Math.max(60, startWidth + diff)
+      onColumnsChange(
+        columns.map(col => col.id === columnId ? { ...col, width: Math.round(newWidth) } : col)
+      )
+    }
+    const handleMouseUp = () => {
+      if (!resizingRef.current) return
+      resizingRef.current = null
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [columns, onColumnsChange])
+
   const visibleColumns = columns.filter(col => col.visible)
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -150,15 +254,16 @@ export function PropertyTable({
 
   const activeFilterCount = Object.values(columnFilters).filter(v => v && v.length > 0).length
 
-  const SortableHeader = ({ field, children, sortable = true }: { field: SortField; children: React.ReactNode; sortable?: boolean }) => {
+  const SortableHeader = ({ field, children, sortable = true, columnId, width }: { field: SortField; children: React.ReactNode; sortable?: boolean; columnId: string; width?: number }) => {
     const filterValues = columnFilters[field] || []
     const hasFilter = filterValues.length > 0
 
     return (
       <TableHead
-        className={`whitespace-nowrap ${sortable ? 'cursor-pointer select-none' : ''} ${
+        className={`relative whitespace-nowrap ${sortable ? 'cursor-pointer select-none' : ''} ${
           sortField === field ? 'text-primary' : ''
         } group/header`}
+        style={width ? { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` } : undefined}
       >
         <div className="flex items-center gap-0.5">
           <span
@@ -232,6 +337,11 @@ export function PropertyTable({
             </PopoverContent>
           </Popover>
         </div>
+        {/* 列宽调整把手 */}
+        <div
+          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/40 active:bg-primary/60 z-20 hidden md:block"
+          onMouseDown={(e) => handleResizeStart(e, columnId)}
+        />
       </TableHead>
     )
   }
@@ -254,11 +364,13 @@ export function PropertyTable({
   }
 
   const handleToggleColumn = (columnId: string) => {
-    onColumnsChange(
-      columns.map(col =>
-        col.id === columnId ? { ...col, visible: !col.visible } : col
-      )
+    const updated = columns.map(col =>
+      col.id === columnId ? { ...col, visible: !col.visible } : col
     )
+    // 开启的列自动靠前
+    const visible = updated.filter(col => col.visible)
+    const hidden = updated.filter(col => !col.visible)
+    onColumnsChange([...visible, ...hidden])
   }
 
   const handleAddColumn = () => {
@@ -272,7 +384,10 @@ export function PropertyTable({
       isCustom: true,
       type: newColumnType,
     }
-    onColumnsChange([...columns, newColumn])
+    // 新增列默认开启，插到 visible 列末尾
+    const visible = columns.filter(col => col.visible)
+    const hidden = columns.filter(col => !col.visible)
+    onColumnsChange([...visible, newColumn, ...hidden])
     setNewColumnName('')
     setNewColumnType('text')
     setShowAddColumnDialog(false)
@@ -280,6 +395,20 @@ export function PropertyTable({
 
   const handleDeleteColumn = (columnId: string) => {
     onColumnsChange(columns.filter(col => col.id !== columnId))
+  }
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = columns.findIndex(col => col.id === active.id)
+    const newIndex = columns.findIndex(col => col.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    onColumnsChange(arrayMove(columns, oldIndex, newIndex))
   }
 
   const getCellValue = (property: Property, column: ColumnConfig) => {
@@ -514,11 +643,11 @@ export function PropertyTable({
               </>
             ) : (
               <>
-                {property.tags.slice(0, 2).map((tag) => (
+                {property.tags.map((tag) => (
                   <Badge
                     key={tag}
                     variant="secondary"
-                    className={`text-xs ${
+                    className={`text-xs shrink-0 ${
                       tag.includes('急售') || tag.includes('议价')
                         ? 'bg-destructive/10 text-destructive'
                         : 'bg-secondary text-secondary-foreground'
@@ -527,11 +656,6 @@ export function PropertyTable({
                     {tag}
                   </Badge>
                 ))}
-                {property.tags.length > 2 && (
-                  <Badge variant="secondary" className="bg-muted text-xs text-muted-foreground">
-                    +{property.tags.length - 2}
-                  </Badge>
-                )}
               </>
             )}
           </div>
@@ -634,37 +758,24 @@ export function PropertyTable({
                     添加列
                   </Button>
                 </div>
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {columns.map((column) => (
-                    <div
-                      key={column.id}
-                      className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-accent"
-                    >
-                      <div className="flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{column.label}</span>
-                        {column.isCustom && (
-                          <Badge variant="outline" className="text-xs h-5">自定义</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={column.visible}
-                          onCheckedChange={() => handleToggleColumn(column.id)}
+                <p className="text-xs text-muted-foreground -mt-2">拖拽列名可调整顺序</p>
+                <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                  <DndContext
+                    sensors={dndSensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext items={columns.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                      {columns.map((column) => (
+                        <SortableColumnItem
+                          key={column.id}
+                          column={column}
+                          onToggle={handleToggleColumn}
+                          onDelete={handleDeleteColumn}
                         />
-                        {column.isCustom && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleDeleteColumn(column.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 </div>
               </div>
             </PopoverContent>
@@ -701,15 +812,17 @@ export function PropertyTable({
 
       {/* 表格内容 */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full caption-bottom text-sm">
+        <table ref={tableRef} className="w-full caption-bottom text-sm" style={{ tableLayout: visibleColumns.some(c => c.width) ? 'fixed' : undefined }}>
           <TableHeader className="sticky top-0 bg-card z-10">
             <TableRow className="border-b border-border hover:bg-transparent">
               <TableHead className="w-12 text-center">对比</TableHead>
               {visibleColumns.map((column) => (
-                <SortableHeader 
-                  key={column.id} 
-                  field={column.key} 
+                <SortableHeader
+                  key={column.id}
+                  field={column.key}
                   sortable={column.sortable}
+                  columnId={column.id}
+                  width={column.width}
                 >
                   {column.label}
                 </SortableHeader>
@@ -742,7 +855,11 @@ export function PropertyTable({
                   />
                 </TableCell>
                 {visibleColumns.map((column) => (
-                  <TableCell key={column.id}>
+                  <TableCell
+                    key={column.id}
+                    className={column.width ? (column.key === 'tags' ? 'overflow-hidden' : 'overflow-hidden truncate') : ''}
+                    style={column.width ? { maxWidth: `${column.width}px` } : undefined}
+                  >
                     {renderCellContent(property, column)}
                   </TableCell>
                 ))}

@@ -65,6 +65,7 @@ export interface ColumnConfig {
   sortable: boolean
   isCustom: boolean
   type?: 'text' | 'number' | 'date'
+  width?: number
 }
 
 // 默认的内置列
