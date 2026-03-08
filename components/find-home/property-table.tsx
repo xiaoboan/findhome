@@ -120,6 +120,7 @@ interface PropertyTableProps {
   selectedIds: string[]
   activePropertyId: string | null
   viewMode: ViewMode
+  showCompareColumn: boolean
   sortField: SortField
   sortOrder: SortOrder
   columns: ColumnConfig[]
@@ -157,6 +158,7 @@ export function PropertyTable({
   selectedIds,
   activePropertyId,
   viewMode,
+  showCompareColumn,
   sortField,
   sortOrder,
   columns,
@@ -815,7 +817,7 @@ export function PropertyTable({
         <table ref={tableRef} className="w-full caption-bottom text-sm" style={{ tableLayout: visibleColumns.some(c => c.width) ? 'fixed' : undefined }}>
           <TableHeader className="sticky top-0 bg-card z-10">
             <TableRow className="border-b border-border hover:bg-transparent">
-              <TableHead className="w-12 text-center">对比</TableHead>
+              {showCompareColumn && <TableHead className="w-12 text-center">对比</TableHead>}
               {visibleColumns.map((column) => (
                 <SortableHeader
                   key={column.id}
@@ -847,6 +849,7 @@ export function PropertyTable({
                   }
                 }}
               >
+                {showCompareColumn && (
                 <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                   <Checkbox
                     checked={selectedIds.includes(property.id)}
@@ -854,6 +857,7 @@ export function PropertyTable({
                     className="border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                   />
                 </TableCell>
+                )}
                 {visibleColumns.map((column) => (
                   <TableCell
                     key={column.id}

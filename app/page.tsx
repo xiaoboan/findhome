@@ -35,6 +35,7 @@ export default function FindHomePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [activePropertyId, setActivePropertyId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [isCompareSelecting, setIsCompareSelecting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterTag, setFilterTag] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>('lastViewing')
@@ -157,11 +158,18 @@ export default function FindHomePage() {
           if (viewMode === 'compare') {
             setViewMode('list')
             setSelectedIds([])
+            setIsCompareSelecting(false)
+          } else if (isCompareSelecting) {
+            setIsCompareSelecting(false)
+            setSelectedIds([])
           } else if (selectedIds.length >= 2) {
             setViewMode('compare')
+          } else {
+            setIsCompareSelecting(true)
           }
         }}
         canCompare={selectedIds.length >= 2}
+        isCompareSelecting={isCompareSelecting}
         filterTag={filterTag}
         onClearFilter={() => setFilterTag(null)}
       />
@@ -183,6 +191,7 @@ export default function FindHomePage() {
               selectedIds={selectedIds}
               activePropertyId={activePropertyId}
               viewMode={viewMode}
+              showCompareColumn={isCompareSelecting || selectedIds.length > 0}
               sortField={sortField}
               sortOrder={sortOrder}
               columns={columns}
@@ -320,6 +329,7 @@ export default function FindHomePage() {
                 selectedIds={selectedIds}
                 activePropertyId={activePropertyId}
                 viewMode={viewMode}
+                showCompareColumn={isCompareSelecting || selectedIds.length > 0}
                 sortField={sortField}
                 sortOrder={sortOrder}
                 columns={columns}

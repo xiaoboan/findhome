@@ -29,6 +29,7 @@ interface HeaderProps {
   onToggleEdit: () => void
   onToggleCompare: () => void
   canCompare: boolean
+  isCompareSelecting: boolean
   filterTag: string | null
   onClearFilter: () => void
 }
@@ -56,6 +57,7 @@ export function Header({
   onToggleEdit,
   onToggleCompare,
   canCompare,
+  isCompareSelecting,
   filterTag,
   onClearFilter,
 }: HeaderProps) {
@@ -196,18 +198,19 @@ export function Header({
               <span className="hidden sm:inline text-xs md:text-sm">编辑</span>
             </Button>
             <Button
-              variant={viewMode === 'compare' ? 'default' : 'outline'}
+              variant={viewMode === 'compare' || isCompareSelecting ? 'default' : 'outline'}
               size="sm"
               onClick={onToggleCompare}
-              disabled={!canCompare && viewMode !== 'compare'}
               className={`gap-1.5 h-8 md:h-9 px-2 md:px-3 transition-all ${
-                viewMode === 'compare'
+                viewMode === 'compare' || isCompareSelecting
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md'
-                  : 'border-border text-foreground hover:bg-accent hover:text-accent-foreground hover:border-primary disabled:opacity-50'
+                  : 'border-border text-foreground hover:bg-accent hover:text-accent-foreground hover:border-primary'
               }`}
             >
               <GitCompareArrows className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs md:text-sm">对比</span>
+              <span className="hidden sm:inline text-xs md:text-sm">
+                {viewMode === 'compare' ? '退出对比' : isCompareSelecting ? '取消选择' : '对比'}
+              </span>
             </Button>
 
             {/* 三档主题切换按钮 - 手机端隐藏 */}
