@@ -803,7 +803,7 @@ export function PropertyTable({
               onClick={onClearDemoData}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              一键删除示例数据
+              <span className="hidden sm:inline">一键删除</span>示例数据
             </Button>
           )}
           {activeFilterCount > 0 && (
@@ -828,20 +828,20 @@ export function PropertyTable({
             onClick={onScreenshot}
           >
             <Camera className="h-3.5 w-3.5" />
-            截图识别
+            <span className="hidden sm:inline">截图识别</span>
           </Button>
         )}
       </div>
 
       {/* 表格内容 */}
       {properties.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <Camera className="h-8 w-8 text-primary" />
+        <div className="flex-1 flex items-center justify-center p-6 md:p-8">
+          <div className="flex flex-col items-center gap-3 md:gap-4 text-center max-w-sm">
+            <div className="flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-full bg-primary/10">
+              <Camera className="h-7 w-7 md:h-8 md:w-8 text-primary" />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-lg font-medium">开始录入房源</h3>
+              <h3 className="text-base md:text-lg font-medium">开始录入房源</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 在贝壳、链家等平台看到心仪房源？截图即可快速录入，AI 自动识别房源信息
               </p>

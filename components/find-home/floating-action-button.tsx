@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
-import { Plus, Camera, FileText, Sparkles, X, Loader2 } from 'lucide-react'
+import { Plus, Camera, FileText, Sparkles, X, Loader2, CheckCircle2, RotateCw, ImageIcon, Minimize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ColumnConfig } from '@/types/property'
 import { parseScreenshot, ParsedProperty } from '@/lib/ai'
+import { Progress } from '@/components/ui/progress'
 
 interface FloatingActionButtonProps {
   onAddProperty: () => void
@@ -17,59 +18,124 @@ export interface FloatingActionButtonRef {
   triggerScreenshot: () => void
 }
 
+type TaskStatus = 'pending' | 'parsing' | 'done' | 'error'
+
+interface ParseTask {
+  id: string
+  file: File
+  preview: string
+  status: TaskStatus
+  result?: ParsedProperty
+  error?: string
+}
+
 export const FloatingActionButton = forwardRef<FloatingActionButtonRef, FloatingActionButtonProps>(function FloatingActionButton({ onAddProperty, onAddFromScreenshot, columns }, ref) {
   const [isOpen, setIsOpen] = useState(false)
-  const [parsing, setParsing] = useState(false)
-  const [preview, setPreview] = useState<string | null>(null)
-  const [result, setResult] = useState<ParsedProperty | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [showDialog, setShowDialog] = useState(false)
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null)
+  const [tasks, setTasks] = useState<ParseTask[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useImperativeHandle(ref, () => ({
-    triggerScreenshot: () => fileInputRef.current?.click(),
+    triggerScreenshot: () => {
+      // 有后台任务时，重新打开弹窗
+      if (hasBackgroundTasks) {
+        setShowDialog(true)
+      } else {
+        fileInputRef.current?.click()
+      }
+    },
   }))
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const doneCount = tasks.filter(t => t.status === 'done').length
+  const errorCount = tasks.filter(t => t.status === 'error').length
+  const totalCount = tasks.length
+  const isAllFinished = totalCount > 0 && doneCount + errorCount === totalCount
+  const hasBackgroundTasks = totalCount > 0 && !isAllFinished && !showDialog
+  const progressPercent = totalCount > 0 ? Math.round(((doneCount + errorCount) / totalCount) * 100) : 0
 
-    // 重置
-    setError(null)
-    setResult(null)
-    setScreenshotFile(file)
-    setPreview(URL.createObjectURL(file))
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const newTasks: ParseTask[] = Array.from(files).map((file) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      file,
+      preview: URL.createObjectURL(file),
+      status: 'pending' as TaskStatus,
+    }))
+
+    setTasks(newTasks)
     setShowDialog(true)
-    setParsing(true)
+
+    // 清空 input，允许再次选择
+    if (fileInputRef.current) fileInputRef.current.value = ''
+
+    // 并行识别所有图片
+    for (const task of newTasks) {
+      processTask(task.id, task.file, newTasks)
+    }
+  }
+
+  const processTask = async (taskId: string, file: File, currentTasks?: ParseTask[]) => {
+    setTasks(prev => {
+      const base = currentTasks || prev
+      return base.map(t => t.id === taskId ? { ...t, status: 'parsing' as TaskStatus, error: undefined } : t)
+    })
 
     try {
       const base64 = await fileToBase64(file)
       const data = await parseScreenshot(base64, file.type, columns)
-      setResult(data)
+
+      setTasks(prev => prev.map(t =>
+        t.id === taskId ? { ...t, status: 'done' as TaskStatus, result: data } : t
+      ))
+
+      // 识别成功自动入库
+      onAddFromScreenshot(data, file)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '识别失败')
-    } finally {
-      setParsing(false)
-      // 清空 input，允许再次选择同一文件
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      setTasks(prev => prev.map(t =>
+        t.id === taskId ? { ...t, status: 'error' as TaskStatus, error: err instanceof Error ? err.message : '识别失败' } : t
+      ))
     }
   }
 
-  const handleConfirm = () => {
-    if (result && screenshotFile) {
-      onAddFromScreenshot(result, screenshotFile)
+  const handleRetry = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (task) {
+      processTask(taskId, task.file)
     }
-    handleClose()
   }
 
-  const handleClose = () => {
+  // 后台执行：关闭弹窗但保留任务状态
+  const handleMinimize = () => {
     setShowDialog(false)
-    setPreview(null)
-    setResult(null)
-    setError(null)
-    setParsing(false)
-    setScreenshotFile(null)
+  }
+
+  // 彻底关闭：释放资源并清空任务
+  const handleClose = () => {
+    tasks.forEach(t => URL.revokeObjectURL(t.preview))
+    setShowDialog(false)
+    setTasks([])
+  }
+
+  // 点击悬浮按钮
+  const handleFabClick = () => {
+    // 有后台任务，打开任务弹窗
+    if (hasBackgroundTasks || (totalCount > 0 && !showDialog)) {
+      setShowDialog(true)
+      return
+    }
+    setIsOpen(!isOpen)
+  }
+
+  // 格式化单条识别结果的摘要
+  const formatSummary = (data: ParsedProperty): string => {
+    const parts: string[] = []
+    if (data.name) parts.push(data.name)
+    if (data.layout) parts.push(data.layout)
+    if (data.area) parts.push(`${data.area}m²`)
+    if (data.price) parts.push(`${data.price}万`)
+    return parts.join(' · ') || '已识别'
   }
 
   const actions = [
@@ -82,38 +148,13 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
     { icon: Sparkles, label: 'AI分析', onClick: () => console.log('AI分析') },
   ]
 
-  // 格式化识别结果供展示
-  const formatResult = (data: ParsedProperty) => {
-    const lines: { label: string; value: string }[] = []
-    if (data.name) lines.push({ label: '小区', value: data.name })
-    if (data.roomNumber) lines.push({ label: '房号', value: data.roomNumber })
-    if (data.price) lines.push({ label: '总价', value: `${data.price}万` })
-    if (data.pricePerSqm) lines.push({ label: '单价', value: `${data.pricePerSqm}万/㎡` })
-    if (data.layout) lines.push({ label: '户型', value: data.layout })
-    if (data.area) lines.push({ label: '面积', value: `${data.area}㎡` })
-    if (data.district) lines.push({ label: '区域', value: data.district })
-    if (data.floor) lines.push({ label: '楼层', value: data.floor })
-    if (data.orientation) lines.push({ label: '朝向', value: data.orientation })
-    if (data.decoration) lines.push({ label: '装修', value: data.decoration })
-    if (data.age) lines.push({ label: '房龄', value: `${data.age}年` })
-    if (data.tags?.length) lines.push({ label: '标签', value: data.tags.join('、') })
-    if (data.customFields) {
-      for (const [key, val] of Object.entries(data.customFields)) {
-        const col = columns.find(c => c.key === key)
-        if (col && val !== undefined && val !== '') {
-          lines.push({ label: col.label, value: String(val) })
-        }
-      }
-    }
-    return lines
-  }
-
   return (
     <>
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={handleFileSelect}
       />
@@ -121,7 +162,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
       <div className="fixed bottom-16 md:bottom-6 right-4 md:right-6 z-50 pointer-events-none">
         <div
           className={`mb-3 flex flex-col gap-2 transition-all duration-200 ${
-            isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4'
+            isOpen && !hasBackgroundTasks ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4'
           }`}
         >
           {actions.map((action) => (
@@ -141,81 +182,124 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
           ))}
         </div>
 
-        <Button
-          size="icon"
-          className={`pointer-events-auto h-12 w-12 md:h-14 md:w-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 active:scale-95 ${
-            isOpen ? 'rotate-45' : ''
-          }`}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? (
-            <X className="h-6 w-6 text-primary-foreground" />
-          ) : (
-            <Plus className="h-6 w-6 text-primary-foreground" />
+        <div className="relative pointer-events-auto">
+          <Button
+            size="icon"
+            className={`h-12 w-12 md:h-14 md:w-14 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 active:scale-95 ${
+              isOpen && !hasBackgroundTasks ? 'rotate-45' : ''
+            }`}
+            onClick={handleFabClick}
+          >
+            {isOpen && !hasBackgroundTasks ? (
+              <X className="h-6 w-6 text-primary-foreground" />
+            ) : hasBackgroundTasks ? (
+              <Loader2 className="h-6 w-6 text-primary-foreground animate-spin" />
+            ) : (
+              <Plus className="h-6 w-6 text-primary-foreground" />
+            )}
+          </Button>
+
+          {/* 后台任务进度徽标 */}
+          {hasBackgroundTasks && (
+            <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1 text-[10px] font-bold text-white shadow-sm">
+              {doneCount}/{totalCount}
+            </span>
           )}
-        </Button>
+        </div>
       </div>
 
-      {/* 识别结果弹窗 */}
-      <Dialog open={showDialog} onOpenChange={(open) => { if (!open) handleClose() }}>
-        <DialogContent className="sm:max-w-lg">
+      {/* 批量识别弹窗 */}
+      <Dialog open={showDialog} onOpenChange={(open) => { if (!open && isAllFinished) handleClose() }}>
+        <DialogContent className="sm:max-w-lg" onPointerDownOutside={(e) => { if (!isAllFinished) e.preventDefault() }}>
           <DialogHeader>
-            <DialogTitle>截图识别</DialogTitle>
+            <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+              <span className="shrink-0">截图识别</span>
+              <span className="text-sm font-normal text-muted-foreground text-right">
+                {isAllFinished
+                  ? `完成 ${doneCount}/${totalCount}${errorCount > 0 ? `，失败 ${errorCount}` : ''}`
+                  : `识别中 ${doneCount + errorCount}/${totalCount}`
+                }
+              </span>
+            </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* 截图预览 */}
-            {preview && (
-              <div className="relative max-h-48 overflow-hidden rounded-lg border border-border">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="截图" className="w-full object-contain" />
-              </div>
+          <div className="space-y-3">
+            {/* 总体进度条 */}
+            {!isAllFinished && (
+              <Progress value={progressPercent} className="h-1.5" />
             )}
 
-            {/* 加载中 */}
-            {parsing && (
-              <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>正在识别房源信息...</span>
-              </div>
-            )}
+            {/* 任务列表 */}
+            <div className="space-y-2 max-h-64 sm:max-h-80 overflow-y-auto">
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-2.5 sm:gap-3 rounded-lg border border-border p-2 sm:p-2.5 transition-colors"
+                >
+                  {/* 缩略图 */}
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={task.preview} alt="" className="h-full w-full object-cover object-top" />
+                  </div>
 
-            {/* 错误 */}
-            {error && (
-              <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+                  {/* 信息 */}
+                  <div className="flex-1 min-w-0">
+                    {task.status === 'done' && task.result ? (
+                      <p className="text-sm font-medium truncate">{formatSummary(task.result)}</p>
+                    ) : task.status === 'error' ? (
+                      <p className="text-sm text-destructive truncate">{task.error}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground truncate">{task.file.name}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {task.status === 'pending' && '等待中...'}
+                      {task.status === 'parsing' && '正在识别...'}
+                      {task.status === 'done' && '已添加到房源列表'}
+                      {task.status === 'error' && '识别失败'}
+                    </p>
+                  </div>
 
-            {/* 识别结果 */}
-            {result && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">识别结果：</p>
-                <div className="rounded-lg border border-border p-3 space-y-1.5">
-                  {formatResult(result).map(({ label, value }) => (
-                    <div key={label} className="flex text-sm">
-                      <span className="w-16 shrink-0 text-muted-foreground">{label}</span>
-                      <span className="font-medium">{value}</span>
-                    </div>
-                  ))}
+                  {/* 状态图标 */}
+                  <div className="shrink-0">
+                    {task.status === 'pending' && (
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    {task.status === 'parsing' && (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    )}
+                    {task.status === 'done' && (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
+                    {task.status === 'error' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-primary"
+                        onClick={() => handleRetry(task.id)}
+                      >
+                        <RotateCw className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
 
           {/* 底部按钮 */}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={handleClose}>
-              取消
-            </Button>
-            {error && (
-              <Button onClick={() => fileInputRef.current?.click()}>
-                重新选择
+          <div className="flex justify-end gap-2 pt-1">
+            {isAllFinished ? (
+              <Button onClick={handleClose}>
+                完成
               </Button>
-            )}
-            {result && (
-              <Button onClick={handleConfirm}>
-                添加到房源列表
+            ) : (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleMinimize}
+              >
+                <Minimize2 className="h-4 w-4" />
+                后台执行
               </Button>
             )}
           </div>
@@ -230,7 +314,6 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader()
     reader.onload = () => {
       const dataUrl = reader.result as string
-      // 去掉 data:image/xxx;base64, 前缀
       resolve(dataUrl.split(',')[1])
     }
     reader.onerror = reject

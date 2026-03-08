@@ -463,15 +463,10 @@ export default function FindHomePage() {
           if (data.tags?.length) initData.tags = data.tags
           if (data.customFields) initData.customFields = data.customFields
           const newId = await addProperty(initData)
-          if (newId) {
-            // 封面图异步上传，不阻塞主流程
-            if (user) {
-              uploadImage(imageFile, user.id, newId)
-                .then((coverUrl) => updateProperty(newId, { coverImage: coverUrl }))
-                .catch((e) => console.error('封面图上传失败:', e))
-            }
-            setActivePropertyId(newId)
-            setViewMode('detail')
+          if (newId && user) {
+            uploadImage(imageFile, user.id, newId)
+              .then((coverUrl) => updateProperty(newId, { coverImage: coverUrl }))
+              .catch((e) => console.error('封面图上传失败:', e))
           }
         }}
       />
