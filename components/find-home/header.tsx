@@ -105,7 +105,7 @@ export function Header({
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="搜索小区名称、区域..."
+              placeholder="搜索小区名称、房号、区域..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="h-9 w-full rounded-full border-border bg-background pl-9 pr-4 focus:border-primary"
@@ -129,7 +129,7 @@ export function Header({
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="搜索小区名称、区域..."
+                placeholder="搜索小区名称、房号、区域..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className="h-11 w-full rounded-full border-border bg-background pl-11 pr-11 focus:border-primary focus:ring-primary/20 shadow-sm"

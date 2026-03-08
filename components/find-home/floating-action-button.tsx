@@ -78,6 +78,7 @@ export function FloatingActionButton({ onAddProperty, onAddFromScreenshot, colum
   const formatResult = (data: ParsedProperty) => {
     const lines: { label: string; value: string }[] = []
     if (data.name) lines.push({ label: '小区', value: data.name })
+    if (data.roomNumber) lines.push({ label: '房号', value: data.roomNumber })
     if (data.price) lines.push({ label: '总价', value: `${data.price}万` })
     if (data.pricePerSqm) lines.push({ label: '单价', value: `${data.pricePerSqm}万/㎡` })
     if (data.layout) lines.push({ label: '户型', value: data.layout })

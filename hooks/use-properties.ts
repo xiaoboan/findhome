@@ -60,15 +60,20 @@ export function useProperties() {
   }, [fetchProperties, fetchColumns])
 
   // 添加房源
-  const addProperty = useCallback(async () => {
+  const addProperty = useCallback(async (initialData?: Partial<Property>) => {
     if (!user) return
     const sb = getSupabase()
+    const insertData: Record<string, unknown> = {
+      user_id: user.id,
+      name: '新房源',
+    }
+    if (initialData) {
+      const dbFields = propertyToDbUpdate(initialData)
+      Object.assign(insertData, dbFields)
+    }
     const { data, error } = await sb
       .from('houses')
-      .insert({
-        user_id: user.id,
-        name: '新房源',
-      })
+      .insert(insertData)
       .select()
       .single()
 

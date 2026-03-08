@@ -6,6 +6,7 @@ export function dbToProperty(row: any, viewingRecords: any[], aiAnalysis: any | 
   return {
     id: row.id,
     name: row.name,
+    roomNumber: row.room_number || '',
     price: Number(row.price),
     pricePerSqm: Number(row.price_per_sqm),
     layout: row.layout,
@@ -46,6 +47,7 @@ export function dbToProperty(row: any, viewingRecords: any[], aiAnalysis: any | 
 export function propertyToDbUpdate(updates: Partial<Property>) {
   const result: Record<string, unknown> = {}
   if (updates.name !== undefined) result.name = updates.name
+  if (updates.roomNumber !== undefined) result.room_number = updates.roomNumber
   if (updates.price !== undefined) result.price = updates.price
   if (updates.pricePerSqm !== undefined) result.price_per_sqm = updates.pricePerSqm
   if (updates.layout !== undefined) result.layout = updates.layout

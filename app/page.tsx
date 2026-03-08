@@ -65,7 +65,8 @@ export default function FindHomePage() {
   const filteredProperties = properties
     .filter((p) => {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.district.toLowerCase().includes(searchQuery.toLowerCase())
+        p.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.roomNumber.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesTag = !filterTag || p.tags.includes(filterTag)
 
       // 列筛选
@@ -433,31 +434,28 @@ export default function FindHomePage() {
           setViewMode('edit')
         }}
         onAddFromScreenshot={async (data: ParsedProperty, imageFile: File) => {
-          const newId = await addProperty()
+          const initData: Partial<Property> = {}
+          if (data.name) initData.name = data.name
+          if (data.roomNumber) initData.roomNumber = data.roomNumber
+          if (data.price) initData.price = data.price
+          if (data.pricePerSqm) initData.pricePerSqm = data.pricePerSqm
+          if (data.layout) initData.layout = data.layout
+          if (data.area) initData.area = data.area
+          if (data.district) initData.district = data.district
+          if (data.floor) initData.floor = data.floor
+          if (data.orientation) initData.orientation = data.orientation
+          if (data.decoration) initData.decoration = data.decoration
+          if (data.age) initData.age = data.age
+          if (data.tags?.length) initData.tags = data.tags
+          if (data.customFields) initData.customFields = data.customFields
+          const newId = await addProperty(initData)
           if (newId) {
-            const updates: Partial<Property> = {}
-            if (data.name) updates.name = data.name
-            if (data.price) updates.price = data.price
-            if (data.pricePerSqm) updates.pricePerSqm = data.pricePerSqm
-            if (data.layout) updates.layout = data.layout
-            if (data.area) updates.area = data.area
-            if (data.district) updates.district = data.district
-            if (data.floor) updates.floor = data.floor
-            if (data.orientation) updates.orientation = data.orientation
-            if (data.decoration) updates.decoration = data.decoration
-            if (data.age) updates.age = data.age
-            if (data.tags?.length) updates.tags = data.tags
-            if (data.customFields) updates.customFields = data.customFields
-            // 将截图上传为封面图
+            // 封面图异步上传，不阻塞主流程
             if (user) {
-              try {
-                const coverUrl = await uploadImage(imageFile, user.id, newId)
-                updates.coverImage = coverUrl
-              } catch (e) {
-                console.error('封面图上传失败:', e)
-              }
+              uploadImage(imageFile, user.id, newId)
+                .then((coverUrl) => updateProperty(newId, { coverImage: coverUrl }))
+                .catch((e) => console.error('封面图上传失败:', e))
             }
-            await updateProperty(newId, updates)
             setActivePropertyId(newId)
             setViewMode('edit')
           }

@@ -21,6 +21,7 @@ export interface CustomColumn {
 export interface Property {
   id: string
   name: string
+  roomNumber: string
   price: number
   pricePerSqm: number
   layout: string
@@ -68,6 +69,7 @@ export interface ColumnConfig {
 export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'id', key: 'id', label: '房源ID', visible: false, sortable: false, isCustom: false },
   { id: 'name', key: 'name', label: '小区名', visible: true, sortable: true, isCustom: false },
+  { id: 'roomNumber', key: 'roomNumber', label: '房号', visible: true, sortable: true, isCustom: false },
   { id: 'price', key: 'price', label: '价格', visible: true, sortable: true, isCustom: false },
   { id: 'layout', key: 'layout', label: '户型', visible: true, sortable: false, isCustom: false },
   { id: 'area', key: 'area', label: '面积', visible: true, sortable: true, isCustom: false },

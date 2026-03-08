@@ -26,6 +26,7 @@ ${schemaPrompt}
 返回格式示例：
 {
   "name": "万科金域华府",
+  "roomNumber": "39-1201",
   "price": 520,
   "layout": "3室2厅2卫",
   "area": 100,

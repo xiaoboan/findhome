@@ -3,6 +3,7 @@ import { ColumnConfig } from '@/types/property'
 // 从截图中提取的房源数据
 export interface ParsedProperty {
   name?: string
+  roomNumber?: string
   price?: number
   pricePerSqm?: number
   layout?: string
@@ -20,6 +21,7 @@ export interface ParsedProperty {
 function buildSchemaPrompt(customColumns: ColumnConfig[]): string {
   const builtinFields = [
     { key: 'name', label: '小区名称', type: 'string' },
+    { key: 'roomNumber', label: '房号（如39-1201代表39栋1201房间）', type: 'string' },
     { key: 'price', label: '总价（万元）', type: 'number' },
     { key: 'pricePerSqm', label: '单价（万元/平米）', type: 'number' },
     { key: 'layout', label: '户型（如3室2厅1卫）', type: 'string' },

@@ -222,13 +222,27 @@ export function PropertyDetail({
       {/* 标题区 */}
       <div className="mb-6">
         {isEditMode ? (
-          <Input
-            value={property.name}
-            onChange={(e) => onUpdateProperty({ name: e.target.value })}
-            className="mb-2 text-2xl font-bold h-12"
-          />
+          <div className="flex items-center gap-2 mb-2">
+            <Input
+              value={property.name}
+              onChange={(e) => onUpdateProperty({ name: e.target.value })}
+              className="text-2xl font-bold h-12 flex-1"
+              placeholder="小区名"
+            />
+            <Input
+              value={property.roomNumber}
+              onChange={(e) => onUpdateProperty({ roomNumber: e.target.value })}
+              className="text-lg h-12 w-32"
+              placeholder="房号如39-1201"
+            />
+          </div>
         ) : (
-          <h1 className="mb-2 text-2xl font-bold text-foreground">{property.name}</h1>
+          <h1 className="mb-2 text-2xl font-bold text-foreground">
+            {property.name}
+            {property.roomNumber && (
+              <span className="ml-2 text-lg font-normal text-muted-foreground">({property.roomNumber})</span>
+            )}
+          </h1>
         )}
         <div className="flex items-baseline gap-2">
           {isEditMode ? (

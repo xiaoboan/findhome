@@ -4,6 +4,7 @@ export const mockProperties: Property[] = [
   {
     id: '1',
     name: '万科金域华府',
+    roomNumber: '12-1501',
     price: 520,
     pricePerSqm: 5.2,
     layout: '3室2厅2卫',
@@ -51,6 +52,7 @@ export const mockProperties: Property[] = [
   {
     id: '2',
     name: '龙湖春江郦城',
+    roomNumber: '5-802',
     price: 380,
     pricePerSqm: 4.75,
     layout: '2室2厅1卫',
@@ -77,6 +79,7 @@ export const mockProperties: Property[] = [
   {
     id: '3',
     name: '绿地海珀云庭',
+    roomNumber: '8-2203',
     price: 680,
     pricePerSqm: 5.67,
     layout: '4室2厅2卫',
@@ -114,6 +117,7 @@ export const mockProperties: Property[] = [
   {
     id: '4',
     name: '保利天悦',
+    roomNumber: '3-1204',
     price: 450,
     pricePerSqm: 5.0,
     layout: '3室2厅1卫',
@@ -142,6 +146,7 @@ export const mockProperties: Property[] = [
   {
     id: '5',
     name: '中海锦城',
+    roomNumber: '17-603',
     price: 320,
     pricePerSqm: 4.0,
     layout: '2室1厅1卫',
@@ -168,6 +173,7 @@ export const mockProperties: Property[] = [
   {
     id: '6',
     name: '融创壹号院',
+    roomNumber: '21-1802',
     price: 580,
     pricePerSqm: 5.27,
     layout: '3室2厅2卫',

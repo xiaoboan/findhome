@@ -30,6 +30,7 @@ export interface Database {
           id: string
           user_id: string
           name: string
+          room_number: string
           price: number
           price_per_sqm: number
           layout: string
@@ -52,6 +53,7 @@ export interface Database {
           id?: string
           user_id: string
           name?: string
+          room_number?: string
           price?: number
           price_per_sqm?: number
           layout?: string
@@ -70,6 +72,7 @@ export interface Database {
         }
         Update: {
           name?: string
+          room_number?: string
           price?: number
           price_per_sqm?: number
           layout?: string

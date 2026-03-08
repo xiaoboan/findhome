@@ -332,7 +332,28 @@ export function PropertyTable({
             />
           )
         }
-        return <span className="font-medium text-foreground">{property.name}</span>
+        return (
+          <span className="font-medium text-foreground">
+            {property.name}
+            {property.roomNumber && (
+              <span className="ml-1 text-muted-foreground font-normal">({property.roomNumber})</span>
+            )}
+          </span>
+        )
+
+      case 'roomNumber':
+        if (isEditMode) {
+          return (
+            <Input
+              value={property.roomNumber}
+              onChange={(e) => onUpdateProperty(property.id, { roomNumber: e.target.value })}
+              className="h-8 w-24"
+              placeholder="如39-1201"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )
+        }
+        return <span className="text-muted-foreground">{property.roomNumber || '-'}</span>
       
       case 'price':
         if (isEditMode) {
