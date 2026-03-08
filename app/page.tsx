@@ -467,7 +467,7 @@ export default function FindHomePage() {
                 .catch((e) => console.error('封面图上传失败:', e))
             }
             setActivePropertyId(newId)
-            setViewMode('edit')
+            setViewMode('detail')
           }
         }}
       />

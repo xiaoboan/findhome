@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, GripVertical, Filter, Sparkles, ExternalLink } from 'lucide-react'
+import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, GripVertical, Filter, Sparkles, ExternalLink, ImageIcon } from 'lucide-react'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -818,6 +818,7 @@ export function PropertyTable({
           <TableHeader className="sticky top-0 bg-card z-10">
             <TableRow className="border-b border-border hover:bg-transparent">
               {showCompareColumn && <TableHead className="w-12 text-center">对比</TableHead>}
+              <TableHead className="w-12 md:w-14"></TableHead>
               {visibleColumns.map((column) => (
                 <SortableHeader
                   key={column.id}
@@ -858,6 +859,19 @@ export function PropertyTable({
                   />
                 </TableCell>
                 )}
+                <TableCell className="p-1 md:p-1.5">
+                  {property.coverImage ? (
+                    <img
+                      src={property.coverImage}
+                      alt=""
+                      className="h-9 w-9 md:h-10 md:w-10 rounded object-cover object-top"
+                    />
+                  ) : (
+                    <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded bg-muted">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                </TableCell>
                 {visibleColumns.map((column) => (
                   <TableCell
                     key={column.id}
