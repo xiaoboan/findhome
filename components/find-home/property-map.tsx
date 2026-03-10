@@ -80,6 +80,7 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [mapReady, setMapReady] = useState(false)
   const [geocoding, setGeocoding] = useState(false)
   const [geocodeProgress, setGeocodeProgress] = useState({ done: 0, total: 0 })
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
@@ -167,6 +168,7 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
 
         mapRef.current = map
         setLoading(false)
+        setMapReady(true)
 
         const savedCity = localStorage.getItem(CITY_STORAGE_KEY)
         let detectedCity = savedCity || ''
@@ -201,10 +203,10 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 房源数据变化时更新标注
+  // 房源数据变化时更新标注（需要地图初始化完成后才执行）
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
 
     // 清除旧标注
     markersRef.current.forEach(m => map.remove(m))
@@ -317,7 +319,7 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
       // 延迟一帧确保标注渲染完成
       setTimeout(fitToMarkers, 50)
     }
-  }, [properties, fitToMarkers])
+  }, [properties, mapReady, fitToMarkers])
 
   // geocoding 结束后自动缩放
   useEffect(() => {
