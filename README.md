@@ -4,6 +4,8 @@
 
 购房决策辅助工具 -- 一张可编辑的房源对比大表格，替代你看房时的 Excel 和备忘录。
 
+**在线体验：[https://findhome.xiaoboan.top](https://findhome.xiaoboan.top/)**
+
 ## 解决什么问题
 
 - 看了几十套房，信息散落在收藏夹、备忘录、Excel 各处，无法高效对比
