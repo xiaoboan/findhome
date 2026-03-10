@@ -713,6 +713,15 @@ export function PropertyDetail({
             <DialogTitle>查看照片</DialogTitle>
           </VisuallyHidden>
           <div className="relative flex items-center justify-center" style={{ height: '90vh' }}>
+            {/* 关闭按钮 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-3 right-3 z-10 h-10 w-10 rounded-full bg-white/90 text-gray-800 shadow-lg hover:bg-white active:scale-95 transition-all"
+              onClick={() => setLightboxOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
             {lightboxPhotos[lightboxIndex] && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -727,7 +736,7 @@ export function PropertyDetail({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 text-white hover:bg-white/40"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 text-gray-800 shadow-lg hover:bg-white active:scale-95 transition-all"
                   onClick={() =>
                     setLightboxIndex((prev) =>
                       prev === 0 ? lightboxPhotos.length - 1 : prev - 1
@@ -739,7 +748,7 @@ export function PropertyDetail({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 text-white hover:bg-white/40"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 text-gray-800 shadow-lg hover:bg-white active:scale-95 transition-all"
                   onClick={() =>
                     setLightboxIndex((prev) =>
                       prev === lightboxPhotos.length - 1 ? 0 : prev + 1
@@ -750,14 +759,6 @@ export function PropertyDetail({
                 </Button>
               </>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 bg-white/20 text-white hover:bg-white/40 rounded-full"
-              onClick={() => setLightboxOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
           </div>
           {lightboxPhotos.length > 1 && (
             <div className="p-4 text-center text-white">
