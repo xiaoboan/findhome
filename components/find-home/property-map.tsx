@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, MapPin, Loader2, Navigation, ImageIcon, ChevronDown } from 'lucide-react'
+import { X, MapPin, Loader2, Navigation, ImageIcon, ChevronDown, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import { Property } from '@/types/property'
 import { Button } from '@/components/ui/button'
@@ -37,6 +37,42 @@ const HOT_CITIES = [
 
 const CITY_STORAGE_KEY = 'findhome_map_city'
 
+// 对坐标相同的标注做微小偏移，避免完全重叠
+function spreadOverlappingCoords(props: Property[]): Map<string, { lng: number; lat: number }> {
+  const coordMap = new Map<string, { lng: number; lat: number }>()
+  // 按坐标分组
+  const groups = new Map<string, Property[]>()
+  for (const p of props) {
+    if (p.longitude == null || p.latitude == null) continue
+    const key = `${p.longitude.toFixed(6)},${p.latitude.toFixed(6)}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(p)
+  }
+
+  for (const [, group] of groups) {
+    if (group.length === 1) {
+      const p = group[0]
+      coordMap.set(p.id, { lng: p.longitude!, lat: p.latitude! })
+    } else {
+      // 多个房源在同一坐标，围绕中心点扇形展开
+      const centerLng = group[0].longitude!
+      const centerLat = group[0].latitude!
+      const offset = 0.0003 // 约30米的偏移
+      const angleStep = (2 * Math.PI) / group.length
+
+      group.forEach((p, i) => {
+        const angle = angleStep * i - Math.PI / 2 // 从正上方开始
+        coordMap.set(p.id, {
+          lng: centerLng + offset * Math.cos(angle),
+          lat: centerLat + offset * Math.sin(angle),
+        })
+      })
+    }
+  }
+
+  return coordMap
+}
+
 export function PropertyMap({ properties, onClose, onViewDetail, onUpdateProperty }: PropertyMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,19 +83,40 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
   const [geocoding, setGeocoding] = useState(false)
   const [geocodeProgress, setGeocodeProgress] = useState({ done: 0, total: 0 })
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
+  // 同小区多房源列表
+  const [overlappingList, setOverlappingList] = useState<Property[] | null>(null)
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set())
   const [city, setCity] = useState('')
   const [cityOpen, setCityOpen] = useState(false)
   const [citySearch, setCitySearch] = useState('')
   const geocodingRef = useRef(false)
+  const hasFitViewRef = useRef(false)
   const isMobile = useIsMobile()
+
+  // 自动缩放到所有标注（只在 geocode 完成后或已有坐标时调用）
+  const fitToMarkers = useCallback(() => {
+    const map = mapRef.current
+    if (!map || markersRef.current.length === 0) return
+
+    if (markersRef.current.length === 1) {
+      const marker = markersRef.current[0]
+      map.setCenter(marker.getPosition())
+      map.setZoom(15)
+    } else {
+      map.setFitView(markersRef.current, false, [80, 80, 80, 80])
+    }
+    hasFitViewRef.current = true
+  }, [])
 
   // 对没有坐标的房源进行 POI 搜索（串行 + 限流）
   const geocodeProperties = useCallback(async (props: Property[], searchCity: string) => {
     const needGeocode = props.filter(p => p.longitude == null || p.latitude == null)
-    if (needGeocode.length === 0) return
+    if (needGeocode.length === 0) {
+      // 所有房源已有坐标，直接缩放
+      setTimeout(fitToMarkers, 200)
+      return
+    }
 
-    // 防止重复执行
     if (geocodingRef.current) return
     geocodingRef.current = true
 
@@ -68,7 +125,6 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
     const newFailed = new Set<string>()
 
     for (let i = 0; i < needGeocode.length; i++) {
-      // 检查是否已卸载
       if (!geocodingRef.current) break
 
       const p = needGeocode[i]
@@ -84,7 +140,7 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
     setFailedIds(newFailed)
     setGeocoding(false)
     geocodingRef.current = false
-  }, [onUpdateProperty])
+  }, [onUpdateProperty, fitToMarkers])
 
   // 初始化地图 + 自动检测城市
   useEffect(() => {
@@ -98,7 +154,8 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
         if (destroyed) return
 
         const map = new AMap.Map(mapContainerRef.current, {
-          zoom: 12,
+          zoom: 4,       // 初始小比例尺，geocode 后自动缩放
+          center: [104.07, 30.67], // 中国中心
           resizeEnable: true,
           viewMode: '2D',
         })
@@ -111,7 +168,6 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
         mapRef.current = map
         setLoading(false)
 
-        // 读取缓存的城市，或自动检测
         const savedCity = localStorage.getItem(CITY_STORAGE_KEY)
         let detectedCity = savedCity || ''
 
@@ -126,7 +182,6 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
           localStorage.setItem(CITY_STORAGE_KEY, detectedCity)
         }
 
-        // 开始地理编码
         await geocodeProperties(properties, detectedCity)
       } catch {
         setLoading(false)
@@ -161,7 +216,32 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const AMap = (window as any).AMap
 
+    // 计算展开后的坐标
+    const spreadCoords = spreadOverlappingCoords(locatedProps)
+
+    // 按坐标分组，找出重叠的房源
+    const coordGroups = new Map<string, Property[]>()
+    for (const p of locatedProps) {
+      const key = `${p.longitude!.toFixed(6)},${p.latitude!.toFixed(6)}`
+      if (!coordGroups.has(key)) coordGroups.set(key, [])
+      coordGroups.get(key)!.push(p)
+    }
+    const overlappingMap = new Map<string, Property[]>()
+    for (const [, group] of coordGroups) {
+      if (group.length > 1) {
+        for (const p of group) {
+          overlappingMap.set(p.id, group)
+        }
+      }
+    }
+
     locatedProps.forEach(p => {
+      const coord = spreadCoords.get(p.id)
+      if (!coord) return
+
+      const isOverlapping = overlappingMap.has(p.id)
+      const groupSize = overlappingMap.get(p.id)?.length || 1
+
       const markerContent = document.createElement('div')
       markerContent.className = 'amap-marker-custom'
       markerContent.innerHTML = `
@@ -181,7 +261,23 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
             font-weight: 600;
             white-space: nowrap;
             line-height: 1.2;
-          ">${p.price}万</div>
+            position: relative;
+          ">${p.price}万${isOverlapping ? `<span style="
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #3b82f6;
+            color: white;
+            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            border: 1.5px solid white;
+          ">${groupSize}</span>` : ''}</div>
           <div style="
             width: 0;
             height: 0;
@@ -193,29 +289,42 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
       `
 
       const marker = new AMap.Marker({
-        position: new AMap.LngLat(p.longitude!, p.latitude!),
+        position: new AMap.LngLat(coord.lng, coord.lat),
         content: markerContent,
         offset: new AMap.Pixel(-20, -34),
         extData: p,
       })
 
       marker.on('click', () => {
-        setSelectedProperty(p)
-        map.panTo(new AMap.LngLat(p.longitude!, p.latitude!))
+        const group = overlappingMap.get(p.id)
+        if (group && group.length > 1) {
+          // 同小区多房源，展示列表供选择
+          setOverlappingList(group)
+          setSelectedProperty(null)
+        } else {
+          setOverlappingList(null)
+          setSelectedProperty(p)
+        }
+        map.panTo(new AMap.LngLat(coord.lng, coord.lat))
       })
 
       map.add(marker)
       markersRef.current.push(marker)
     })
 
-    // 自动调整视野
-    if (locatedProps.length === 1) {
-      map.setCenter(new AMap.LngLat(locatedProps[0].longitude!, locatedProps[0].latitude!))
-      map.setZoom(15)
-    } else {
-      map.setFitView(markersRef.current, false, [60, 60, 60, 60])
+    // geocode 完成后自动缩放（只在非 geocoding 时，即所有坐标已就绪）
+    if (!geocodingRef.current) {
+      // 延迟一帧确保标注渲染完成
+      setTimeout(fitToMarkers, 50)
     }
-  }, [properties])
+  }, [properties, fitToMarkers])
+
+  // geocoding 结束后自动缩放
+  useEffect(() => {
+    if (!geocoding && !loading && markersRef.current.length > 0 && !hasFitViewRef.current) {
+      fitToMarkers()
+    }
+  }, [geocoding, loading, fitToMarkers])
 
   // 切换城市后，清除旧坐标重新搜索
   const handleCityChange = useCallback(async (newCity: string) => {
@@ -223,15 +332,14 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
     setCityOpen(false)
     setCitySearch('')
     localStorage.setItem(CITY_STORAGE_KEY, newCity)
+    hasFitViewRef.current = false
 
-    // 清除所有已有坐标，用新城市重新搜索
     for (const p of properties) {
       if (p.longitude != null || p.latitude != null) {
         onUpdateProperty(p.id, { longitude: undefined, latitude: undefined })
       }
     }
 
-    // 等清除完成后重新搜索
     setTimeout(() => {
       geocodeProperties(
         properties.map(p => ({ ...p, longitude: undefined, latitude: undefined })),
@@ -240,11 +348,17 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
     }, 100)
   }, [properties, onUpdateProperty, geocodeProperties])
 
-  // 全览
+  // 选择重叠列表中的某个房源
+  const handleSelectFromList = (p: Property) => {
+    setOverlappingList(null)
+    setSelectedProperty(p)
+  }
+
   const handleFitView = () => {
     if (mapRef.current && markersRef.current.length > 0) {
-      mapRef.current.setFitView(markersRef.current, false, [60, 60, 60, 60])
+      mapRef.current.setFitView(markersRef.current, false, [80, 80, 80, 80])
       setSelectedProperty(null)
+      setOverlappingList(null)
     }
   }
 
@@ -367,8 +481,75 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
         </div>
       )}
 
-      {/* 底部房源卡片 */}
-      {selectedProperty && (
+      {/* 同小区多房源选择列表 */}
+      {overlappingList && (
+        <div className={`absolute z-10 ${
+          isMobile
+            ? 'bottom-4 left-3 right-3'
+            : 'bottom-10 left-1/2 -translate-x-1/2 w-[360px]'
+        }`}>
+          <div className="rounded-2xl bg-card border border-border shadow-xl overflow-hidden">
+            <div className="flex items-center justify-between px-3 pt-3 pb-1">
+              <span className="text-sm font-medium">
+                {overlappingList[0].name}
+                <span className="text-muted-foreground font-normal ml-1">({overlappingList.length}套)</span>
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground"
+                onClick={() => setOverlappingList(null)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div className="px-2 pb-2 max-h-48 overflow-y-auto">
+              {overlappingList.map((p) => (
+                <button
+                  key={p.id}
+                  className="w-full flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-accent transition-colors text-left"
+                  onClick={() => handleSelectFromList(p)}
+                >
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-accent">
+                    {p.coverImage ? (
+                      <Image
+                        src={p.coverImage}
+                        alt={p.name}
+                        width={40}
+                        height={40}
+                        className="h-full w-full object-cover"
+                        crossOrigin="anonymous"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground">
+                        <ImageIcon className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-medium truncate">{p.roomNumber || p.name}</span>
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] px-1 py-0 shrink-0 ${statusLabels[p.status]?.className || ''}`}
+                      >
+                        {statusLabels[p.status]?.text}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {p.layout} · {p.area}m² · <span className="text-primary font-medium">{p.price}万</span>
+                    </span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 底部房源卡片（单个房源） */}
+      {selectedProperty && !overlappingList && (
         <div className={`absolute z-10 ${
           isMobile
             ? 'bottom-4 left-3 right-3'
