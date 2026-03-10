@@ -1,12 +1,18 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, MapPin, Loader2, Navigation, ImageIcon } from 'lucide-react'
+import { X, MapPin, Loader2, Navigation, ImageIcon, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 import { Property } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { loadAMap, searchLocation } from '@/lib/amap'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Input } from '@/components/ui/input'
+import { loadAMap, searchLocation, detectCity } from '@/lib/amap'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 interface PropertyMapProps {
@@ -22,6 +28,15 @@ const statusLabels: Record<string, { text: string; className: string }> = {
   sold: { text: '已售', className: 'bg-muted text-muted-foreground' },
 }
 
+const HOT_CITIES = [
+  '北京', '上海', '广州', '深圳',
+  '杭州', '南京', '成都', '武汉',
+  '重庆', '苏州', '天津', '西安',
+  '长沙', '郑州', '东莞', '佛山',
+]
+
+const CITY_STORAGE_KEY = 'findhome_map_city'
+
 export function PropertyMap({ properties, onClose, onViewDetail, onUpdateProperty }: PropertyMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,20 +48,31 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
   const [geocodeProgress, setGeocodeProgress] = useState({ done: 0, total: 0 })
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set())
+  const [city, setCity] = useState('')
+  const [cityOpen, setCityOpen] = useState(false)
+  const [citySearch, setCitySearch] = useState('')
+  const geocodingRef = useRef(false)
   const isMobile = useIsMobile()
 
-  // 对没有坐标的房源进行 POI 搜索
-  const geocodeProperties = useCallback(async (props: Property[]) => {
+  // 对没有坐标的房源进行 POI 搜索（串行 + 限流）
+  const geocodeProperties = useCallback(async (props: Property[], searchCity: string) => {
     const needGeocode = props.filter(p => p.longitude == null || p.latitude == null)
     if (needGeocode.length === 0) return
+
+    // 防止重复执行
+    if (geocodingRef.current) return
+    geocodingRef.current = true
 
     setGeocoding(true)
     setGeocodeProgress({ done: 0, total: needGeocode.length })
     const newFailed = new Set<string>()
 
     for (let i = 0; i < needGeocode.length; i++) {
+      // 检查是否已卸载
+      if (!geocodingRef.current) break
+
       const p = needGeocode[i]
-      const result = await searchLocation(p.name, p.district)
+      const result = await searchLocation(p.name, searchCity)
       if (result) {
         onUpdateProperty(p.id, { longitude: result.lng, latitude: result.lat })
       } else {
@@ -57,9 +83,10 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
 
     setFailedIds(newFailed)
     setGeocoding(false)
+    geocodingRef.current = false
   }, [onUpdateProperty])
 
-  // 初始化地图
+  // 初始化地图 + 自动检测城市
   useEffect(() => {
     let destroyed = false
 
@@ -84,8 +111,23 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
         mapRef.current = map
         setLoading(false)
 
+        // 读取缓存的城市，或自动检测
+        const savedCity = localStorage.getItem(CITY_STORAGE_KEY)
+        let detectedCity = savedCity || ''
+
+        if (!detectedCity) {
+          detectedCity = await detectCity()
+        }
+
+        if (destroyed) return
+
+        if (detectedCity) {
+          setCity(detectedCity)
+          localStorage.setItem(CITY_STORAGE_KEY, detectedCity)
+        }
+
         // 开始地理编码
-        await geocodeProperties(properties)
+        await geocodeProperties(properties, detectedCity)
       } catch {
         setLoading(false)
       }
@@ -95,6 +137,7 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
 
     return () => {
       destroyed = true
+      geocodingRef.current = false
       if (mapRef.current) {
         mapRef.current.destroy()
         mapRef.current = null
@@ -119,7 +162,6 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
     const AMap = (window as any).AMap
 
     locatedProps.forEach(p => {
-      // 自定义标注内容
       const markerContent = document.createElement('div')
       markerContent.className = 'amap-marker-custom'
       markerContent.innerHTML = `
@@ -175,7 +217,30 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
     }
   }, [properties])
 
-  // 定位到所有标注
+  // 切换城市后，清除旧坐标重新搜索
+  const handleCityChange = useCallback(async (newCity: string) => {
+    setCity(newCity)
+    setCityOpen(false)
+    setCitySearch('')
+    localStorage.setItem(CITY_STORAGE_KEY, newCity)
+
+    // 清除所有已有坐标，用新城市重新搜索
+    for (const p of properties) {
+      if (p.longitude != null || p.latitude != null) {
+        onUpdateProperty(p.id, { longitude: undefined, latitude: undefined })
+      }
+    }
+
+    // 等清除完成后重新搜索
+    setTimeout(() => {
+      geocodeProperties(
+        properties.map(p => ({ ...p, longitude: undefined, latitude: undefined })),
+        newCity
+      )
+    }, 100)
+  }, [properties, onUpdateProperty, geocodeProperties])
+
+  // 全览
   const handleFitView = () => {
     if (mapRef.current && markersRef.current.length > 0) {
       mapRef.current.setFitView(markersRef.current, false, [60, 60, 60, 60])
@@ -184,25 +249,78 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
   }
 
   const locatedCount = properties.filter(p => p.longitude != null && p.latitude != null).length
+  const filteredCities = citySearch
+    ? HOT_CITIES.filter(c => c.includes(citySearch))
+    : HOT_CITIES
 
   return (
     <div className="relative h-full w-full">
       {/* 顶部栏 */}
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2 md:px-4 md:py-3 bg-card/90 backdrop-blur-sm border-b border-border">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-primary" />
-          <span className="font-medium text-sm">
-            房源地图
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {locatedCount}/{properties.length} 套已定位
-            {failedIds.size > 0 && `，${failedIds.size} 套未找到`}
+        <div className="flex items-center gap-2 min-w-0">
+          <MapPin className="h-4 w-4 text-primary shrink-0" />
+          <span className="font-medium text-sm shrink-0">房源地图</span>
+
+          {/* 城市选择 */}
+          <Popover open={cityOpen} onOpenChange={setCityOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 px-2 text-xs border-border"
+              >
+                <MapPin className="h-3 w-3" />
+                {city || '选择城市'}
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3" align="start">
+              <Input
+                placeholder="搜索城市..."
+                value={citySearch}
+                onChange={(e) => setCitySearch(e.target.value)}
+                className="h-8 text-sm mb-2"
+              />
+              <div className="grid grid-cols-4 gap-1.5">
+                {filteredCities.map((c) => (
+                  <Button
+                    key={c}
+                    variant={city === c ? 'default' : 'ghost'}
+                    size="sm"
+                    className={`h-7 text-xs px-0 ${city === c ? '' : 'text-foreground'}`}
+                    onClick={() => handleCityChange(c)}
+                  >
+                    {c}
+                  </Button>
+                ))}
+              </div>
+              {citySearch && !filteredCities.length && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  未找到，可直接输入后回车
+                </p>
+              )}
+              {citySearch && !filteredCities.includes(citySearch) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2 h-7 text-xs"
+                  onClick={() => handleCityChange(citySearch)}
+                >
+                  使用 &quot;{citySearch}&quot;
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          <span className="text-xs text-muted-foreground truncate">
+            {locatedCount}/{properties.length} 已定位
+            {failedIds.size > 0 && `，${failedIds.size} 未找到`}
           </span>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full"
+          className="h-8 w-8 rounded-full shrink-0"
           onClick={onClose}
         >
           <X className="h-4 w-4" />
