@@ -26,12 +26,14 @@ export default function FindHomePage() {
   const {
     properties,
     columns,
+    city,
     loading: dataLoading,
     addProperty,
     updateProperty,
     deleteProperty,
     toggleFavorite,
     setColumns,
+    setCity,
     clearDemoProperties,
   } = useProperties()
 
@@ -368,6 +370,8 @@ export default function FindHomePage() {
               {viewMode === 'map' && (
                 <PropertyMap
                   properties={filteredProperties}
+                  city={city}
+                  onCityChange={setCity}
                   onClose={() => setViewMode('list')}
                   onViewDetail={(id: string) => {
                     setActivePropertyId(id)
@@ -383,6 +387,8 @@ export default function FindHomePage() {
         <div className="flex-1 overflow-hidden">
           <PropertyMap
             properties={filteredProperties}
+            city={city}
+            onCityChange={setCity}
             onClose={() => setViewMode('list')}
             onViewDetail={(id: string) => {
               setActivePropertyId(id)

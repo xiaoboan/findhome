@@ -17,6 +17,8 @@ import { useIsMobile } from '@/hooks/use-mobile'
 
 interface PropertyMapProps {
   properties: Property[]
+  city: string
+  onCityChange: (city: string) => void
   onClose: () => void
   onViewDetail: (id: string) => void
   onUpdateProperty: (id: string, updates: Partial<Property>) => void
@@ -35,7 +37,7 @@ const HOT_CITIES = [
   '长沙', '郑州', '东莞', '佛山',
 ]
 
-const CITY_STORAGE_KEY = 'findhome_map_city'
+const CITY_STORAGE_KEY = 'findhome_map_city' // 仅用于首次检测缓存，正式数据存数据库
 
 // 对坐标相同的标注做微小偏移，避免完全重叠
 function spreadOverlappingCoords(props: Property[]): Map<string, { lng: number; lat: number }> {
@@ -73,7 +75,7 @@ function spreadOverlappingCoords(props: Property[]): Map<string, { lng: number; 
   return coordMap
 }
 
-export function PropertyMap({ properties, onClose, onViewDetail, onUpdateProperty }: PropertyMapProps) {
+export function PropertyMap({ properties, city, onCityChange, onClose, onViewDetail, onUpdateProperty }: PropertyMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null)
@@ -87,7 +89,6 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
   // 同小区多房源列表
   const [overlappingList, setOverlappingList] = useState<Property[] | null>(null)
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set())
-  const [city, setCity] = useState('')
   const [cityOpen, setCityOpen] = useState(false)
   const [citySearch, setCitySearch] = useState('')
   const geocodingRef = useRef(false)
@@ -170,21 +171,28 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
         setLoading(false)
         setMapReady(true)
 
-        const savedCity = localStorage.getItem(CITY_STORAGE_KEY)
-        let detectedCity = savedCity || ''
-
-        if (!detectedCity) {
-          detectedCity = await detectCity()
+        // 使用数据库中的城市，没有则自动检测
+        let useCity = city
+        if (!useCity) {
+          // 先看 localStorage 缓存（首次检测结果）
+          const cachedCity = localStorage.getItem(CITY_STORAGE_KEY)
+          if (cachedCity) {
+            useCity = cachedCity
+          } else {
+            useCity = await detectCity()
+            if (useCity) {
+              localStorage.setItem(CITY_STORAGE_KEY, useCity)
+            }
+          }
         }
 
         if (destroyed) return
 
-        if (detectedCity) {
-          setCity(detectedCity)
-          localStorage.setItem(CITY_STORAGE_KEY, detectedCity)
+        if (useCity && useCity !== city) {
+          onCityChange(useCity)
         }
 
-        await geocodeProperties(properties, detectedCity)
+        await geocodeProperties(properties, useCity)
       } catch {
         setLoading(false)
       }
@@ -330,10 +338,9 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
 
   // 切换城市后，清除旧坐标重新搜索
   const handleCityChange = useCallback(async (newCity: string) => {
-    setCity(newCity)
+    onCityChange(newCity)
     setCityOpen(false)
     setCitySearch('')
-    localStorage.setItem(CITY_STORAGE_KEY, newCity)
     hasFitViewRef.current = false
 
     for (const p of properties) {
@@ -348,7 +355,7 @@ export function PropertyMap({ properties, onClose, onViewDetail, onUpdatePropert
         newCity
       )
     }, 100)
-  }, [properties, onUpdateProperty, geocodeProperties])
+  }, [properties, onUpdateProperty, onCityChange, geocodeProperties])
 
   // 选择重叠列表中的某个房源
   const handleSelectFromList = (p: Property) => {

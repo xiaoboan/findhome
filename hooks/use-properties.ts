@@ -11,6 +11,7 @@ export function useProperties() {
   const { user } = useAuth()
   const [properties, setProperties] = useState<Property[]>([])
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
+  const [city, setCity] = useState('')
   const [loading, setLoading] = useState(true)
 
   // 加载房源数据
@@ -62,10 +63,26 @@ export function useProperties() {
     }
   }, [user])
 
+  // 加载用户城市
+  const fetchCity = useCallback(async () => {
+    if (!user) return
+    const sb = getSupabase()
+    const { data } = await sb
+      .from('profiles')
+      .select('city')
+      .eq('id', user.id)
+      .single()
+
+    if (data?.city) {
+      setCity(data.city)
+    }
+  }, [user])
+
   useEffect(() => {
     fetchProperties()
     fetchColumns()
-  }, [fetchProperties, fetchColumns])
+    fetchCity()
+  }, [fetchProperties, fetchColumns, fetchCity])
 
   // 添加房源
   const addProperty = useCallback(async (initialData?: Partial<Property>) => {
@@ -220,9 +237,20 @@ export function useProperties() {
     setProperties((prev) => prev.filter((p) => !p.isDemo))
   }, [user, properties])
 
+  // 保存用户城市
+  const saveCity = useCallback(async (newCity: string) => {
+    setCity(newCity)
+    if (!user) return
+    await getSupabase()
+      .from('profiles')
+      .update({ city: newCity })
+      .eq('id', user.id)
+  }, [user])
+
   return {
     properties,
     columns,
+    city,
     loading,
     addProperty,
     updateProperty,
@@ -230,6 +258,7 @@ export function useProperties() {
     toggleFavorite,
     clearDemoProperties,
     setColumns: saveColumns,
+    setCity: saveCity,
     refetch: fetchProperties,
   }
 }

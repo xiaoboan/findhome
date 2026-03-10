@@ -12,6 +12,7 @@ create table profiles (
   phone text,
   email text,
   avatar_url text,
+  city text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
