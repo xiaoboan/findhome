@@ -17,6 +17,7 @@ import {
 import { ColumnConfig } from '@/types/property'
 import { parseScreenshot, ParsedProperty } from '@/lib/ai'
 import { Progress } from '@/components/ui/progress'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface FloatingActionButtonProps {
   onAddProperty: () => void
@@ -46,6 +47,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
   const [tasks, setTasks] = useState<ParseTask[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const isMobile = useIsMobile()
 
   const doneCount = tasks.filter(t => t.status === 'done').length
   const errorCount = tasks.filter(t => t.status === 'error').length
@@ -228,7 +230,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
         onChange={handleFileSelect}
       />
 
-      <div className="fixed bottom-16 md:bottom-6 right-4 md:right-6 z-50 pointer-events-none">
+      <div className={`fixed bottom-16 md:bottom-6 right-4 md:right-6 z-50 pointer-events-none ${isMobile && !hasBackgroundTasks ? 'hidden' : ''}`}>
         <div
           className={`mb-3 flex flex-col gap-2 transition-all duration-200 ${
             isOpen && !hasBackgroundTasks ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4'
