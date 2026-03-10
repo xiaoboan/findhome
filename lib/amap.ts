@@ -1,7 +1,7 @@
 // 高德地图工具：加载 SDK + POI 搜索 + 地理编码
 
-const AMAP_KEY = '852fb73ba1ee066dd99bbdbe8170a45e'
-const AMAP_SECRET = 'e72df2a51036e2540d1fca1f7219395a'
+const AMAP_KEY = process.env.NEXT_PUBLIC_AMAP_KEY || ''
+const AMAP_SECRET = process.env.NEXT_PUBLIC_AMAP_SECRET || ''
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let AMapInstance: any = null

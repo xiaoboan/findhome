@@ -69,6 +69,15 @@ AI_API_KEY=your-api-key
 AI_MODEL=Qwen/Qwen2.5-VL-72B-Instruct
 ```
 
+### 高德地图配置
+
+在 `.env.local` 中追加（[高德开放平台](https://lbs.amap.com/) 注册申请 Web端 JS API Key）：
+
+```
+NEXT_PUBLIC_AMAP_KEY=your-amap-key
+NEXT_PUBLIC_AMAP_SECRET=your-amap-secret
+```
+
 新用户注册后会自动生成 6 条示例房源（带封面图和 `is_demo` 标记），可在界面中一键清除，不影响用户自建数据。示例图片存放在 `public/demo/` 下，随项目部署，不占 Supabase Storage。
 
 ### 安装与运行
