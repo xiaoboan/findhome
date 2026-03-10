@@ -792,7 +792,7 @@ export function PropertyTable({
               </div>
             </PopoverContent>
           </Popover>
-          <span className="text-sm text-muted-foreground">
+          <span className="hidden sm:inline text-sm text-muted-foreground">
             显示 {visibleColumns.length} / {columns.length} 列
           </span>
           {showClearDemo && onClearDemoData && (
@@ -1009,18 +1009,6 @@ export function PropertyTable({
         <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
           <span>共 <strong className="text-foreground">{stats.total}</strong> 套房源</span>
           <span>已看 <strong className="text-success">{stats.viewed}</strong> 套</span>
-          {activeFilterCount > 0 && (
-            <span className="flex items-center gap-1">
-              <Filter className="h-3 w-3 text-primary" />
-              <strong className="text-primary">{activeFilterCount}</strong> 个筛选
-              <button
-                className="text-xs text-muted-foreground hover:text-primary underline"
-                onClick={() => onColumnFiltersChange({})}
-              >
-                全部清除
-              </button>
-            </span>
-          )}
           {selectedIds.length > 0 && (
             <span>已选 <strong className="text-primary">{selectedIds.length}</strong> 套</span>
           )}

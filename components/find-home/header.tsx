@@ -71,11 +71,6 @@ export function Header({
     setMounted(true)
   }, [])
 
-  useEffect(() => {
-    console.log('[v0] Current theme:', theme)
-    console.log('[v0] Document class:', typeof document !== 'undefined' ? document.documentElement.className : 'N/A')
-  }, [theme])
-
   // 避免 hydration mismatch
   const currentTheme = (mounted ? theme : 'light') as ThemeType
 

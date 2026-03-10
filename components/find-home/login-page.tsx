@@ -90,11 +90,11 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/20">
       {/* Hero */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-4 text-center">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-primary shadow-xl">
-          <Home className="h-10 w-10 text-primary-foreground" />
+      <section className="relative flex min-h-[100dvh] flex-col items-center justify-center px-4 text-center">
+        <div className="mx-auto mb-4 md:mb-6 flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-3xl bg-primary shadow-xl">
+          <Home className="h-8 w-8 md:h-10 md:w-10 text-primary-foreground" />
         </div>
-        <h1 className="mb-3 text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+        <h1 className="mb-2 md:mb-3 text-3xl font-bold tracking-tight text-foreground md:text-5xl">
           寻家
         </h1>
         <p className="mb-2 text-lg text-primary font-medium md:text-xl">
@@ -119,9 +119,9 @@ export function LoginPage() {
       </section>
 
       {/* 痛点 */}
-      <section className="border-t border-border/50 bg-card/50 py-16 md:py-20">
+      <section className="border-t border-border/50 bg-card/50 py-12 md:py-20">
         <div className="mx-auto max-w-3xl px-4 text-center">
-          <h2 className="mb-10 text-2xl font-bold text-foreground md:text-3xl">看房人的烦恼</h2>
+          <h2 className="mb-8 md:mb-10 text-xl font-bold text-foreground md:text-3xl">看房人的烦恼</h2>
           <div className="grid gap-6 md:grid-cols-3">
             {[
               { emoji: '😵', text: '看了几十套房，信息散落在收藏夹、备忘录、Excel 各处' },
@@ -138,20 +138,20 @@ export function LoginPage() {
       </section>
 
       {/* 功能亮点 */}
-      <section className="py-16 md:py-20">
+      <section className="py-12 md:py-20">
         <div className="mx-auto max-w-4xl px-4">
-          <h2 className="mb-10 text-center text-2xl font-bold text-foreground md:text-3xl">核心功能</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <h2 className="mb-8 md:mb-10 text-center text-xl font-bold text-foreground md:text-3xl">核心功能</h2>
+          <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-2xl border border-border/50 bg-card p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+                className="group rounded-2xl border border-border/50 bg-card p-4 md:p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <f.icon className="h-6 w-6" />
+                <div className="mb-3 md:mb-4 flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <f.icon className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
-                <h3 className="mb-2 font-semibold text-foreground">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                <h3 className="mb-1 md:mb-2 text-sm md:text-base font-semibold text-foreground">{f.title}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -159,7 +159,7 @@ export function LoginPage() {
       </section>
 
       {/* 注册/登录 */}
-      <section ref={formRef} className="border-t border-border/50 bg-card/50 py-16 md:py-20">
+      <section ref={formRef} className="border-t border-border/50 bg-card/50 py-12 md:py-20">
         <div className="mx-auto max-w-md px-4">
           <Card className="shadow-xl border-border/50">
             <CardHeader className="text-center pb-2">

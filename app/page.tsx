@@ -266,7 +266,7 @@ export default function FindHomePage() {
 
           {/* 移动端对比选择浮动条 */}
           {isMobile && selectedIds.length >= 2 && viewMode !== 'compare' && (
-            <div className="fixed bottom-20 left-4 right-4 z-40 flex items-center justify-between rounded-2xl bg-card border border-border shadow-xl px-4 py-3">
+            <div className="fixed bottom-24 left-4 right-4 z-40 flex items-center justify-between rounded-2xl bg-card border border-border shadow-xl px-4 py-3">
               <div className="flex items-center gap-2 text-sm">
                 <GitCompareArrows className="h-4 w-4 text-primary" />
                 <span>已选 <strong className="text-primary">{selectedIds.length}</strong> 套房源</span>
