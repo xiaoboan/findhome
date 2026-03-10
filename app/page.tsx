@@ -10,6 +10,7 @@ import { Header } from '@/components/find-home/header'
 import { PropertyTable } from '@/components/find-home/property-table'
 import { PropertyDetail } from '@/components/find-home/property-detail'
 import { PropertyCompare } from '@/components/find-home/property-compare'
+import { PropertyMap } from '@/components/find-home/property-map'
 import { FloatingActionButton, FloatingActionButtonRef } from '@/components/find-home/floating-action-button'
 import { ParsedProperty } from '@/lib/ai'
 import { uploadImage } from '@/lib/storage'
@@ -157,6 +158,7 @@ export default function FindHomePage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onToggleEdit={() => setViewMode((prev) => (prev === 'edit' ? 'list' : 'edit'))}
+        onToggleMap={() => setViewMode((prev) => (prev === 'map' ? 'list' : 'map'))}
         onToggleCompare={() => {
           if (viewMode === 'compare') {
             setViewMode('list')
@@ -353,7 +355,42 @@ export default function FindHomePage() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Mobile map dialog */}
+          <Dialog
+            open={viewMode === 'map'}
+            onOpenChange={(open) => {
+              if (!open) setViewMode('list')
+            }}
+          >
+            <DialogContent className="h-[100dvh] max-h-[100dvh] w-screen max-w-full rounded-none border-none p-0 gap-0" showCloseButton={false}>
+              <VisuallyHidden><DialogTitle>房源地图</DialogTitle></VisuallyHidden>
+              {viewMode === 'map' && (
+                <PropertyMap
+                  properties={filteredProperties}
+                  onClose={() => setViewMode('list')}
+                  onViewDetail={(id: string) => {
+                    setActivePropertyId(id)
+                    setViewMode('detail')
+                  }}
+                  onUpdateProperty={(id, updates) => updateProperty(id, updates)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </>
+      ) : viewMode === 'map' ? (
+        <div className="flex-1 overflow-hidden">
+          <PropertyMap
+            properties={filteredProperties}
+            onClose={() => setViewMode('list')}
+            onViewDetail={(id: string) => {
+              setActivePropertyId(id)
+              setViewMode('detail')
+            }}
+            onUpdateProperty={(id, updates) => updateProperty(id, updates)}
+          />
+        </div>
       ) : (
         <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden">
           <ResizablePanel defaultSize={showSidebar ? 55 : 100} minSize={30}>

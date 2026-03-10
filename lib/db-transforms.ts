@@ -41,6 +41,8 @@ export function dbToProperty(row: any, viewingRecords: any[], aiAnalysis: any | 
     customFields: row.custom_fields || {},
     isDemo: row.is_demo ?? false,
     sourceUrl: row.source_url || '',
+    longitude: row.longitude ?? undefined,
+    latitude: row.latitude ?? undefined,
   }
 }
 
@@ -65,5 +67,7 @@ export function propertyToDbUpdate(updates: Partial<Property>) {
   if (updates.coverImage !== undefined) result.cover_image = updates.coverImage
   if (updates.customFields !== undefined) result.custom_fields = updates.customFields
   if (updates.sourceUrl !== undefined) result.source_url = updates.sourceUrl
+  if (updates.longitude !== undefined) result.longitude = updates.longitude
+  if (updates.latitude !== undefined) result.latitude = updates.latitude
   return result
 }

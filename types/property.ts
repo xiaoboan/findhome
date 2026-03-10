@@ -49,9 +49,12 @@ export interface Property {
   isDemo?: boolean
   // 房源链接（安居客、贝壳等平台）
   sourceUrl?: string
+  // 经纬度（高德坐标系 GCJ-02）
+  longitude?: number
+  latitude?: number
 }
 
-export type ViewMode = 'list' | 'detail' | 'compare' | 'edit'
+export type ViewMode = 'list' | 'detail' | 'compare' | 'edit' | 'map'
 
 export type SortField = 'price' | 'area' | 'lastViewing' | 'name' | string
 export type SortOrder = 'asc' | 'desc'

@@ -40,6 +40,8 @@ create table houses (
   cover_image text not null default '',
   custom_fields jsonb not null default '{}',
   source_url text not null default '',
+  longitude double precision,
+  latitude double precision,
   is_demo boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

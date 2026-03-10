@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Home, Lock, User, Table2, Camera, GitCompareArrows, Pencil, ClipboardList, Sparkles, ChevronDown } from 'lucide-react'
+import { Home, Lock, User, Table2, Camera, GitCompareArrows, Pencil, ClipboardList, MapPin, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,9 +35,9 @@ const features = [
     desc: '结构化备注 + 照片上传，时间轴展示每次看房',
   },
   {
-    icon: Sparkles,
-    title: 'AI 分析',
-    desc: '自动生成优缺点、适合人群、议价建议',
+    icon: MapPin,
+    title: '地图定位',
+    desc: '房源位置一键标注地图，直观对比各小区地理分布',
   },
 ]
 

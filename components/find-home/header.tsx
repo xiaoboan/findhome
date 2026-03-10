@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut, Check } from 'lucide-react'
+import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut, Check, MapPin } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,7 @@ interface HeaderProps {
   onSearchChange: (query: string) => void
   onToggleEdit: () => void
   onToggleCompare: () => void
+  onToggleMap: () => void
   canCompare: boolean
   isCompareSelecting: boolean
   filterTag: string | null
@@ -39,6 +40,7 @@ const modeLabels: Record<ViewMode, string> = {
   detail: '详情查看',
   compare: '对比模式',
   edit: '编辑模式',
+  map: '地图模式',
 }
 
 // 主题配置
@@ -56,6 +58,7 @@ export function Header({
   onSearchChange,
   onToggleEdit,
   onToggleCompare,
+  onToggleMap,
   canCompare,
   isCompareSelecting,
   filterTag,
@@ -205,6 +208,21 @@ export function Header({
               <GitCompareArrows className="h-4 w-4" />
               <span className="hidden sm:inline text-xs md:text-sm">
                 {viewMode === 'compare' ? '退出对比' : isCompareSelecting ? '取消选择' : '对比'}
+              </span>
+            </Button>
+            <Button
+              variant={viewMode === 'map' ? 'default' : 'outline'}
+              size="sm"
+              onClick={onToggleMap}
+              className={`gap-1.5 h-8 md:h-9 px-2 md:px-3 transition-all ${
+                viewMode === 'map'
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md'
+                  : 'border-border text-foreground hover:bg-accent hover:text-accent-foreground hover:border-primary'
+              }`}
+            >
+              <MapPin className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs md:text-sm">
+                {viewMode === 'map' ? '退出地图' : '地图'}
               </span>
             </Button>
 
