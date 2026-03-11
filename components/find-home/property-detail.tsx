@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { X, Heart, MapPin, Ruler, Building2, Compass, PaintBucket, Calendar, Sparkles, ChevronLeft, ChevronRight, Plus, Pencil, Check, Trash2, Upload, Camera, Loader2, ImageIcon, ExternalLink, Link } from 'lucide-react'
-import { Property, PropertyStatus, ColumnConfig } from '@/types/property'
+import { Property, PropertyStatus, PropertyMode, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,6 +26,7 @@ interface PropertyDetailProps {
   property: Property
   isEditMode: boolean
   customColumns: ColumnConfig[]
+  propertyMode?: PropertyMode
   onClose: () => void
   onToggleFavorite: () => void
   onFilterByTag: (tag: string) => void
@@ -36,6 +37,7 @@ export function PropertyDetail({
   property,
   isEditMode,
   customColumns,
+  propertyMode = 'buy',
   onClose,
   onToggleFavorite,
   onFilterByTag,
@@ -253,13 +255,13 @@ export function PropertyDetail({
                 onChange={(e) => onUpdateProperty({ price: Number(e.target.value) })}
                 className="w-32 text-3xl font-bold text-primary"
               />
-              <span className="text-3xl font-bold text-primary">万</span>
+              <span className="text-3xl font-bold text-primary">{propertyMode === 'rent' ? '元/月' : '万'}</span>
             </>
           ) : (
-            <span className="text-3xl font-bold text-primary">{property.price}万</span>
+            <span className="text-3xl font-bold text-primary">{property.price}{propertyMode === 'rent' ? '元/月' : '万'}</span>
           )}
           <span className="text-muted-foreground">
-            单价 {property.pricePerSqm}万/㎡
+            单价 {property.pricePerSqm}{propertyMode === 'rent' ? '元/㎡/月' : '万/㎡'}
           </span>
         </div>
 

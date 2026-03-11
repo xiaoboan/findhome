@@ -13,7 +13,7 @@ const highlights = [
   {
     icon: Camera,
     title: '截图秒录入',
-    desc: '贝壳、链家截图直接丢进来，AI 自动识别价格、户型、面积，一键入库',
+    desc: '贝壳、链家、自如截图直接丢进来，AI 自动识别价格、户型、面积，一键入库',
     tag: 'AI 加持',
   },
   {
@@ -91,13 +91,13 @@ export function LoginPage() {
           <Home className="h-8 w-8 md:h-10 md:w-10 text-primary-foreground" />
         </div>
         <h1 className="mb-3 md:mb-4 text-2xl font-bold tracking-tight text-foreground md:text-5xl leading-tight">
-          看了 30 套房，<br className="md:hidden" />哪套最值得买？
+          看了 30 套房，<br className="md:hidden" />哪套最值得选？
         </h1>
         <p className="mb-2 text-base text-primary font-medium md:text-xl">
           寻家 — 让每一次看房都有迹可循
         </p>
         <p className="mb-8 max-w-lg text-sm text-muted-foreground md:text-base leading-relaxed">
-          截图自动录入、表格在线对比、地图看位置<br className="hidden md:block" />
+          买房租房都能用 · 截图自动录入 · 表格在线对比 · 地图看位置<br className="hidden md:block" />
           替代你看房时的 Excel 和备忘录，帮你做出更好的决策
         </p>
         <div className="flex flex-col items-center gap-3">
@@ -121,7 +121,7 @@ export function LoginPage() {
       <section className="border-t border-border/50 bg-card/50 py-12 md:py-20">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <h2 className="mb-3 md:mb-4 text-xl font-bold text-foreground md:text-3xl">你是不是也这样？</h2>
-          <p className="mb-8 md:mb-10 text-sm text-muted-foreground">每个看过房的人都经历过</p>
+          <p className="mb-8 md:mb-10 text-sm text-muted-foreground">无论买房还是租房，每个找房的人都经历过</p>
           <div className="grid gap-4 md:gap-6 md:grid-cols-3">
             {[
               {
@@ -132,12 +132,12 @@ export function LoginPage() {
               {
                 emoji: '🤹',
                 title: '没法对比',
-                text: '5 套候选房，价格、面积、户型全靠脑子记，Excel 来回切换头都大了',
+                text: '5 套候选房，价格、面积、位置全靠脑子记，Excel 来回切换头都大了',
               },
               {
                 emoji: '📝',
                 title: '关键信息丢了',
-                text: '"房东急售可砍 10 万"、"隔壁在施工" 这些只有现场才知道的信息，没地方记',
+                text: '"房东急售可砍价"、"隔壁装修噪音大" 这些只有现场才知道的信息，没地方记',
               },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl bg-background p-5 md:p-6 shadow-sm border border-border/50 text-left">
@@ -154,7 +154,7 @@ export function LoginPage() {
       <section className="py-10 md:py-14">
         <div className="mx-auto max-w-2xl px-4 text-center">
           <p className="text-lg md:text-2xl font-bold text-foreground">
-            寻家帮你把<span className="text-primary">看房信息</span>管得明明白白
+            寻家帮你把<span className="text-primary">找房信息</span>管得明明白白
           </p>
         </div>
       </section>

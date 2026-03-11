@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Property, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
+import { Property, PropertyMode, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { getSupabase } from '@/lib/supabase'
 import { dbToProperty, propertyToDbUpdate } from '@/lib/db-transforms'
 import { deleteImage } from '@/lib/storage'
@@ -12,6 +12,7 @@ export function useProperties() {
   const [properties, setProperties] = useState<Property[]>([])
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
   const [city, setCity] = useState('')
+  const [propertyMode, setPropertyMode] = useState<PropertyMode>('buy')
   const [loading, setLoading] = useState(true)
 
   // 加载房源数据
@@ -63,26 +64,29 @@ export function useProperties() {
     }
   }, [user])
 
-  // 加载用户城市
-  const fetchCity = useCallback(async () => {
+  // 加载用户偏好（城市、模式）
+  const fetchUserPrefs = useCallback(async () => {
     if (!user) return
     const sb = getSupabase()
     const { data } = await sb
       .from('profiles')
-      .select('city')
+      .select('city, property_mode')
       .eq('id', user.id)
       .single()
 
     if (data?.city) {
       setCity(data.city)
     }
+    if (data?.property_mode) {
+      setPropertyMode(data.property_mode as PropertyMode)
+    }
   }, [user])
 
   useEffect(() => {
     fetchProperties()
     fetchColumns()
-    fetchCity()
-  }, [fetchProperties, fetchColumns, fetchCity])
+    fetchUserPrefs()
+  }, [fetchProperties, fetchColumns, fetchUserPrefs])
 
   // 添加房源
   const addProperty = useCallback(async (initialData?: Partial<Property>) => {
@@ -91,6 +95,7 @@ export function useProperties() {
     const insertData: Record<string, unknown> = {
       user_id: user.id,
       name: '新房源',
+      mode: propertyMode,
     }
     if (initialData) {
       const dbFields = propertyToDbUpdate(initialData)
@@ -247,10 +252,21 @@ export function useProperties() {
       .eq('id', user.id)
   }, [user])
 
+  // 保存买房/租房模式
+  const savePropertyMode = useCallback(async (mode: PropertyMode) => {
+    setPropertyMode(mode)
+    if (!user) return
+    await getSupabase()
+      .from('profiles')
+      .update({ property_mode: mode })
+      .eq('id', user.id)
+  }, [user])
+
   return {
     properties,
     columns,
     city,
+    propertyMode,
     loading,
     addProperty,
     updateProperty,
@@ -259,6 +275,7 @@ export function useProperties() {
     clearDemoProperties,
     setColumns: saveColumns,
     setCity: saveCity,
+    setPropertyMode: savePropertyMode,
     refetch: fetchProperties,
   }
 }

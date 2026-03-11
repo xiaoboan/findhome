@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import Image from 'next/image'
 import { X, ArrowUp, ArrowDown, Sparkles, Settings2, Plus, Trash2, ImageIcon } from 'lucide-react'
-import { Property, CompareColumnConfig, DEFAULT_COMPARE_COLUMNS, ColumnConfig } from '@/types/property'
+import { Property, PropertyMode, CompareColumnConfig, DEFAULT_COMPARE_COLUMNS, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -26,13 +26,22 @@ import {
 interface PropertyCompareProps {
   properties: Property[]
   customColumns?: ColumnConfig[]
+  propertyMode?: PropertyMode
   onClose: () => void
   onViewDetail: (id: string) => void
 }
 
-export function PropertyCompare({ properties, customColumns = [], onClose, onViewDetail }: PropertyCompareProps) {
+export function PropertyCompare({ properties, customColumns = [], propertyMode = 'buy', onClose, onViewDetail }: PropertyCompareProps) {
   // 合并默认列和自定义列
   const initialCompareColumns = useMemo(() => {
+    // 根据模式调整默认列单位
+    const modeColumns = DEFAULT_COMPARE_COLUMNS.map(col => {
+      if (propertyMode === 'rent') {
+        if (col.key === 'price') return { ...col, label: '月租', unit: '元/月' }
+        if (col.key === 'pricePerSqm') return { ...col, label: '单价', unit: '元/㎡/月' }
+      }
+      return col
+    })
     // 从传入的自定义列创建对比列配置
     const customCompareColumns: CompareColumnConfig[] = customColumns.map(col => ({
       key: col.key,
@@ -51,7 +60,7 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
     
     // 添加数据中存在但不在自定义列中的字段
     const existingKeys = new Set([
-      ...DEFAULT_COMPARE_COLUMNS.map(c => c.key),
+      ...modeColumns.map(c => c.key),
       ...customCompareColumns.map(c => c.key)
     ])
     
@@ -64,8 +73,8 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
         isCustom: true,
       }))
     
-    return [...DEFAULT_COMPARE_COLUMNS, ...customCompareColumns, ...additionalColumns]
-  }, [customColumns, properties])
+    return [...modeColumns, ...customCompareColumns, ...additionalColumns]
+  }, [customColumns, properties, propertyMode])
 
   const [compareColumns, setCompareColumns] = useState<CompareColumnConfig[]>(initialCompareColumns)
   
@@ -461,7 +470,7 @@ export function PropertyCompare({ properties, customColumns = [], onClose, onVie
                     {p.name}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {p.price}万 · {p.area}㎡ · {p.layout}
+                    {p.price}{propertyMode === 'rent' ? '元/月' : '万'} · {p.area}㎡ · {p.layout}
                   </div>
                 </div>
                 <Button

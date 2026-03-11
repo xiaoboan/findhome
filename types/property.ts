@@ -1,3 +1,5 @@
+export type PropertyMode = 'buy' | 'rent'
+
 export type PropertyStatus = 'viewed' | 'pending' | 'sold'
 
 export interface ViewingRecord {
@@ -52,6 +54,8 @@ export interface Property {
   // 经纬度（高德坐标系 GCJ-02）
   longitude?: number
   latitude?: number
+  // 买房/租房模式
+  mode?: PropertyMode
 }
 
 export type ViewMode = 'list' | 'detail' | 'compare' | 'edit' | 'map'

@@ -43,6 +43,7 @@ export function dbToProperty(row: any, viewingRecords: any[], aiAnalysis: any | 
     sourceUrl: row.source_url || '',
     longitude: row.longitude ?? undefined,
     latitude: row.latitude ?? undefined,
+    mode: row.mode || 'buy',
   }
 }
 
@@ -69,5 +70,6 @@ export function propertyToDbUpdate(updates: Partial<Property>) {
   if (updates.sourceUrl !== undefined) result.source_url = updates.sourceUrl
   if (updates.longitude !== undefined) result.longitude = updates.longitude
   if (updates.latitude !== undefined) result.latitude = updates.latitude
+  if (updates.mode !== undefined) result.mode = updates.mode
   return result
 }

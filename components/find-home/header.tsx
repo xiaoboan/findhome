@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut, Check, MapPin } from 'lucide-react'
+import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut, Check, MapPin, Building2, Key } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -19,16 +19,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ViewMode } from '@/types/property'
+import { ViewMode, PropertyMode } from '@/types/property'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 interface HeaderProps {
   viewMode: ViewMode
+  propertyMode: PropertyMode
   searchQuery: string
   onSearchChange: (query: string) => void
   onToggleEdit: () => void
   onToggleCompare: () => void
   onToggleMap: () => void
+  onPropertyModeChange: (mode: PropertyMode) => void
   canCompare: boolean
   isCompareSelecting: boolean
   filterTag: string | null
@@ -54,11 +56,13 @@ const themeConfig: Record<ThemeType, { icon: typeof Sun; label: string; descript
 
 export function Header({
   viewMode,
+  propertyMode,
   searchQuery,
   onSearchChange,
   onToggleEdit,
   onToggleCompare,
   onToggleMap,
+  onPropertyModeChange,
   canCompare,
   isCompareSelecting,
   filterTag,
@@ -96,6 +100,35 @@ export function Header({
         >
           {modeLabels[viewMode]}
         </Badge>
+        {/* 买房/租房切换 */}
+        <div className="flex items-center rounded-full border border-border bg-muted p-0.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onPropertyModeChange('buy')}
+            className={`h-7 rounded-full px-2.5 text-xs gap-1 ${
+              propertyMode === 'buy'
+                ? 'bg-card text-primary shadow-sm font-medium'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Building2 className="h-3 w-3" />
+            <span className="hidden sm:inline">买房</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onPropertyModeChange('rent')}
+            className={`h-7 rounded-full px-2.5 text-xs gap-1 ${
+              propertyMode === 'rent'
+                ? 'bg-card text-primary shadow-sm font-medium'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Key className="h-3 w-3" />
+            <span className="hidden sm:inline">租房</span>
+          </Button>
+        </div>
       </div>
 
       {/* 搜索栏 - 桌面端常驻，手机端点击展开 */}

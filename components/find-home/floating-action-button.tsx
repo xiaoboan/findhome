@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ColumnConfig } from '@/types/property'
+import { ColumnConfig, PropertyMode } from '@/types/property'
 import { parseScreenshot, ParsedProperty } from '@/lib/ai'
 import { Progress } from '@/components/ui/progress'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -23,6 +23,7 @@ interface FloatingActionButtonProps {
   onAddProperty: () => void
   onAddFromScreenshot: (data: ParsedProperty, imageFile: File) => void
   columns: ColumnConfig[]
+  propertyMode: PropertyMode
 }
 
 export interface FloatingActionButtonRef {
@@ -40,7 +41,7 @@ interface ParseTask {
   error?: string
 }
 
-export const FloatingActionButton = forwardRef<FloatingActionButtonRef, FloatingActionButtonProps>(function FloatingActionButton({ onAddProperty, onAddFromScreenshot, columns }, ref) {
+export const FloatingActionButton = forwardRef<FloatingActionButtonRef, FloatingActionButtonProps>(function FloatingActionButton({ onAddProperty, onAddFromScreenshot, columns, propertyMode }, ref) {
   const [isOpen, setIsOpen] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [showStopConfirm, setShowStopConfirm] = useState(false)
@@ -119,7 +120,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
         return
       }
 
-      const data = await parseScreenshot(base64, file.type, columns)
+      const data = await parseScreenshot(base64, file.type, columns, propertyMode)
 
       if (abortControllerRef.current?.signal.aborted) {
         setTasks(prev => prev.map(t =>

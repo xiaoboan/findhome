@@ -27,6 +27,7 @@ export default function FindHomePage() {
     properties,
     columns,
     city,
+    propertyMode,
     loading: dataLoading,
     addProperty,
     updateProperty,
@@ -34,6 +35,7 @@ export default function FindHomePage() {
     toggleFavorite,
     setColumns,
     setCity,
+    setPropertyMode,
     clearDemoProperties,
   } = useProperties()
 
@@ -71,6 +73,8 @@ export default function FindHomePage() {
   // 筛选和排序后的房源
   const filteredProperties = properties
     .filter((p) => {
+      // 按买房/租房模式过滤（兼容旧数据没有 mode 字段）
+      const matchesMode = !p.mode || p.mode === propertyMode
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.roomNumber.toLowerCase().includes(searchQuery.toLowerCase())
@@ -94,7 +98,7 @@ export default function FindHomePage() {
         return values.includes(cellValue)
       })
 
-      return matchesSearch && matchesTag && matchesColumnFilters
+      return matchesMode && matchesSearch && matchesTag && matchesColumnFilters
     })
     .sort((a, b) => {
       let comparison = 0
@@ -157,10 +161,12 @@ export default function FindHomePage() {
     <div className="flex h-screen flex-col bg-background">
       <Header
         viewMode={viewMode}
+        propertyMode={propertyMode}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onToggleEdit={() => setViewMode((prev) => (prev === 'edit' ? 'list' : 'edit'))}
         onToggleMap={() => setViewMode((prev) => (prev === 'map' ? 'list' : 'map'))}
+        onPropertyModeChange={setPropertyMode}
         onToggleCompare={() => {
           if (viewMode === 'compare') {
             setViewMode('list')
@@ -257,6 +263,7 @@ export default function FindHomePage() {
                 }
               }}
               stats={stats}
+              propertyMode={propertyMode}
               onScreenshot={() => fabRef.current?.triggerScreenshot()}
               showClearDemo={hasDemoData}
               onClearDemoData={async () => {
@@ -314,6 +321,7 @@ export default function FindHomePage() {
                     property={activeProperty}
                     isEditMode={viewMode === 'edit'}
                     customColumns={columns}
+                    propertyMode={propertyMode}
                     onClose={() => {
                       if (viewMode !== 'edit') setViewMode('list')
                       setActivePropertyId(null)
@@ -344,6 +352,7 @@ export default function FindHomePage() {
                   <PropertyCompare
                     properties={selectedProperties}
                     customColumns={columns.filter(col => col.isCustom)}
+                    propertyMode={propertyMode}
                     onClose={() => {
                       setViewMode('list')
                       setSelectedIds([])
@@ -463,6 +472,7 @@ export default function FindHomePage() {
                   }
                 }}
                 stats={stats}
+                propertyMode={propertyMode}
                 onScreenshot={() => fabRef.current?.triggerScreenshot()}
                 showClearDemo={hasDemoData}
                 onClearDemoData={async () => {
@@ -484,6 +494,7 @@ export default function FindHomePage() {
                     <PropertyCompare
                       properties={selectedProperties}
                       customColumns={columns.filter(col => col.isCustom)}
+                      propertyMode={propertyMode}
                       onClose={() => {
                         setViewMode('list')
                         setSelectedIds([])
@@ -498,6 +509,7 @@ export default function FindHomePage() {
                       property={activeProperty}
                       isEditMode={viewMode === 'edit'}
                       customColumns={columns}
+                      propertyMode={propertyMode}
                       onClose={() => {
                         if (viewMode !== 'edit') {
                           setViewMode('list')
@@ -519,6 +531,7 @@ export default function FindHomePage() {
       <FloatingActionButton
         ref={fabRef}
         columns={columns}
+        propertyMode={propertyMode}
         onAddProperty={async () => {
           await addProperty()
           setViewMode('edit')

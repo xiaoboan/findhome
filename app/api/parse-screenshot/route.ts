@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
-  const { imageBase64, mimeType, schemaPrompt } = await req.json()
+  const { imageBase64, mimeType, schemaPrompt, mode } = await req.json()
 
   const baseUrl = process.env.AI_BASE_URL
   const apiKey = process.env.AI_API_KEY
@@ -14,11 +14,17 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const systemPrompt = `你是一个房产信息提取助手。用户会上传房源截图（来自贝壳、链家、安居客等平台），你需要从中提取结构化的房源数据。
+  const isBuy = mode !== 'rent'
+  const modeLabel = isBuy ? '买房' : '租房'
+  const priceHint = isBuy ? '总价（万元）' : '月租金（元/月）'
+  const pricePerSqmHint = isBuy ? '单价（万元/平米）' : '每平米月租（元/平米/月）'
+
+  const systemPrompt = `你是一个${modeLabel}信息提取助手。用户会上传${modeLabel}截图（来自贝壳、链家、安居客、自如、蛋壳等平台），你需要从中提取结构化的房源数据。
 
 请严格按以下字段 schema 提取，只返回 JSON，不要返回其他内容。
 如果某个字段在截图中找不到，就不要包含该字段。
 数字类型的字段请返回数字而非字符串。
+price 字段为${priceHint}，pricePerSqm 字段为${pricePerSqmHint}。
 tags 字段请提取房源的亮点或特点，作为字符串数组。
 
 ${schemaPrompt}

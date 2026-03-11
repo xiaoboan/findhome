@@ -5,7 +5,7 @@ import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, Grip
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Property, ViewMode, SortField, SortOrder, PropertyStatus, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
+import { Property, ViewMode, SortField, SortOrder, PropertyStatus, PropertyMode, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -139,6 +139,7 @@ interface PropertyTableProps {
   onScreenshot?: () => void
   onClearDemoData?: () => void
   showClearDemo?: boolean
+  propertyMode?: PropertyMode
 }
 
 const statusColors = {
@@ -178,6 +179,7 @@ export function PropertyTable({
   onScreenshot,
   onClearDemoData,
   showClearDemo,
+  propertyMode = 'buy',
 }: PropertyTableProps) {
   const isEditMode = viewMode === 'edit'
   const [editingTagId, setEditingTagId] = useState<string | null>(null)
@@ -493,7 +495,7 @@ export function PropertyTable({
             />
           )
         }
-        return <span className="font-bold text-primary">{property.price}万</span>
+        return <span className="font-bold text-primary">{property.price}{propertyMode === 'rent' ? '元/月' : '万'}</span>
       
       case 'layout':
         if (isEditMode) {
@@ -854,7 +856,7 @@ export function PropertyTable({
             <div className="space-y-1.5">
               <h3 className="text-base md:text-lg font-medium">开始录入房源</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                在贝壳、链家等平台看到心仪房源？截图即可快速录入，AI 自动识别房源信息
+                在贝壳、链家{propertyMode === 'rent' ? '、自如' : ''}等平台看到心仪房源？截图即可快速录入，AI 自动识别房源信息
               </p>
             </div>
             {onScreenshot && (

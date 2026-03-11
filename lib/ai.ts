@@ -1,4 +1,4 @@
-import { ColumnConfig } from '@/types/property'
+import { ColumnConfig, PropertyMode } from '@/types/property'
 
 // 从截图中提取的房源数据
 export interface ParsedProperty {
@@ -61,13 +61,14 @@ export async function parseScreenshot(
   imageBase64: string,
   mimeType: string,
   customColumns: ColumnConfig[],
+  mode: PropertyMode = 'buy',
 ): Promise<ParsedProperty> {
   const schemaPrompt = buildSchemaPrompt(customColumns)
 
   const res = await fetch('/api/parse-screenshot', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageBase64, mimeType, schemaPrompt }),
+    body: JSON.stringify({ imageBase64, mimeType, schemaPrompt, mode }),
   })
 
   if (!res.ok) {
