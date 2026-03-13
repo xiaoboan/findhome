@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut, Check, MapPin, Building2, Key } from 'lucide-react'
+import { Home, Search, Filter, Edit3, GitCompareArrows, X, User, Sun, Moon, Flower2, LogOut, Check, MapPin, Building2, Key, Download } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/popover"
 import { ViewMode, PropertyMode } from '@/types/property'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { usePwaInstall } from '@/components/find-home/pwa-install-prompt'
 
 interface HeaderProps {
   viewMode: ViewMode
@@ -73,6 +74,7 @@ export function Header({
   const [mounted, setMounted] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const isMobile = useIsMobile()
+  const { canInstall, isInstalled, install } = usePwaInstall()
 
   useEffect(() => {
     setMounted(true)
@@ -336,6 +338,17 @@ export function Header({
                         })}
                       </div>
                     </div>
+                  )}
+                  {canInstall && !isInstalled && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 text-primary hover:text-primary hover:border-primary"
+                      onClick={install}
+                    >
+                      <Download className="h-4 w-4" />
+                      安装到桌面
+                    </Button>
                   )}
                   <Button
                     variant="outline"

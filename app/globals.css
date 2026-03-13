@@ -231,3 +231,11 @@ html.dark {
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
+
+/* PWA Standalone 模式：适配 iOS 安全区域 */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

@@ -12,6 +12,7 @@ import { PropertyDetail } from '@/components/find-home/property-detail'
 import { PropertyCompare } from '@/components/find-home/property-compare'
 import { PropertyMap } from '@/components/find-home/property-map'
 import { FloatingActionButton, FloatingActionButtonRef } from '@/components/find-home/floating-action-button'
+import { PwaInstallBanner } from '@/components/find-home/pwa-install-prompt'
 import { ParsedProperty } from '@/lib/ai'
 import { uploadImage } from '@/lib/storage'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
@@ -559,6 +560,8 @@ export default function FindHomePage() {
           }
         }}
       />
+
+      <PwaInstallBanner />
     </div>
   )
 }
