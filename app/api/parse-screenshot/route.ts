@@ -1,7 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// 允许最大 10MB 的请求体（base64 编码后图片会膨胀约 33%）
+export const runtime = 'nodejs'
+
 export async function POST(req: NextRequest) {
-  const { imageBase64, mimeType, schemaPrompt, mode } = await req.json()
+  let body
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json(
+      { error: '请求格式错误，请重试' },
+      { status: 400 },
+    )
+  }
+
+  const { imageBase64, mimeType, schemaPrompt, mode } = body
+
+  if (!imageBase64 || !mimeType) {
+    return NextResponse.json(
+      { error: '缺少图片数据' },
+      { status: 400 },
+    )
+  }
+
+  // 校验 base64 大小（约 8MB 上限，对应原图约 6MB）
+  if (imageBase64.length > 8 * 1024 * 1024) {
+    return NextResponse.json(
+      { error: '图片过大，请使用截图或压缩后重试' },
+      { status: 413 },
+    )
+  }
 
   const baseUrl = process.env.AI_BASE_URL
   const apiKey = process.env.AI_API_KEY

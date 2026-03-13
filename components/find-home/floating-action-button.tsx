@@ -110,7 +110,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
     })
 
     try {
-      const base64 = await fileToBase64(file)
+      const { base64, mimeType, compressedFile } = await compressImage(file)
 
       // 再次检查取消状态
       if (abortControllerRef.current?.signal.aborted) {
@@ -120,7 +120,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
         return
       }
 
-      const data = await parseScreenshot(base64, file.type, columns, propertyMode)
+      const data = await parseScreenshot(base64, mimeType, columns, propertyMode)
 
       if (abortControllerRef.current?.signal.aborted) {
         setTasks(prev => prev.map(t =>
@@ -133,7 +133,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
         t.id === taskId ? { ...t, status: 'done' as TaskStatus, result: data } : t
       ))
 
-      onAddFromScreenshot(data, file)
+      onAddFromScreenshot(data, compressedFile)
     } catch (err) {
       if (abortControllerRef.current?.signal.aborted) {
         setTasks(prev => prev.map(t =>
@@ -141,8 +141,19 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
         ))
         return
       }
+      console.error('截图识别失败:', err)
+      let errorMsg = '识别失败'
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          errorMsg = '网络连接失败，请检查网络后重试'
+        } else if (err.message.includes('413') || err.message.includes('too large') || err.message.includes('body')) {
+          errorMsg = '图片过大，请使用截图而非原图'
+        } else {
+          errorMsg = err.message
+        }
+      }
       setTasks(prev => prev.map(t =>
-        t.id === taskId ? { ...t, status: 'error' as TaskStatus, error: err instanceof Error ? err.message : '识别失败' } : t
+        t.id === taskId ? { ...t, status: 'error' as TaskStatus, error: errorMsg } : t
       ))
     }
   }
@@ -414,14 +425,90 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
   )
 })
 
-function fileToBase64(file: File): Promise<string> {
+// 压缩图片：移动端拍照/截图可能很大（5-10MB），需压缩到合理大小
+function compressImage(file: File, maxSizeMB = 2, maxDimension = 2048): Promise<{ base64: string; mimeType: string; compressedFile: File }> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = reader.result as string
-      resolve(dataUrl.split(',')[1])
+    // 如果已经足够小且是 JPEG/PNG/WebP，直接转 base64
+    if (file.size <= maxSizeMB * 1024 * 1024 && /^image\/(jpeg|png|webp)$/.test(file.type)) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const dataUrl = reader.result as string
+        resolve({
+          base64: dataUrl.split(',')[1],
+          mimeType: file.type,
+          compressedFile: file,
+        })
+      }
+      reader.onerror = () => reject(new Error('图片读取失败'))
+      reader.readAsDataURL(file)
+      return
     }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
+
+    // 需要压缩：通过 canvas 缩放 + 转 JPEG
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+
+      let { width, height } = img
+
+      // 限制最大尺寸
+      if (width > maxDimension || height > maxDimension) {
+        const ratio = Math.min(maxDimension / width, maxDimension / height)
+        width = Math.round(width * ratio)
+        height = Math.round(height * ratio)
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        reject(new Error('无法创建 Canvas'))
+        return
+      }
+      ctx.drawImage(img, 0, 0, width, height)
+
+      // 逐步降低质量直到满足大小限制
+      let quality = 0.85
+      const tryCompress = () => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('图片压缩失败'))
+              return
+            }
+            if (blob.size > maxSizeMB * 1024 * 1024 && quality > 0.3) {
+              quality -= 0.15
+              tryCompress()
+              return
+            }
+            const reader = new FileReader()
+            reader.onload = () => {
+              const dataUrl = reader.result as string
+              const compressedFile = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })
+              resolve({
+                base64: dataUrl.split(',')[1],
+                mimeType: 'image/jpeg',
+                compressedFile,
+              })
+            }
+            reader.onerror = () => reject(new Error('压缩图片读取失败'))
+            reader.readAsDataURL(blob)
+          },
+          'image/jpeg',
+          quality,
+        )
+      }
+      tryCompress()
+    }
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('图片加载失败，可能格式不支持'))
+    }
+
+    img.src = url
   })
 }
