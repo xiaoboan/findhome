@@ -19,27 +19,32 @@ export function useProperties() {
   const fetchProperties = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const sb = getSupabase()
+    try {
+      const sb = getSupabase()
 
-    const [
-      { data: propsData },
-      { data: recordsData },
-      { data: analysesData },
-    ] = await Promise.all([
-      sb.from('houses').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-      sb.from('viewing_records').select('*'),
-      sb.from('ai_analyses').select('*'),
-    ])
+      const [
+        { data: propsData },
+        { data: recordsData },
+        { data: analysesData },
+      ] = await Promise.all([
+        sb.from('houses').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+        sb.from('viewing_records').select('*'),
+        sb.from('ai_analyses').select('*'),
+      ])
 
-    if (propsData) {
-      const result = (propsData as Record<string, unknown>[]).map((p) => {
-        const records = ((recordsData || []) as Record<string, unknown>[]).filter((r) => r.property_id === p.id)
-        const analysis = ((analysesData || []) as Record<string, unknown>[]).find((a) => a.property_id === p.id) || null
-        return dbToProperty(p, records, analysis)
-      })
-      setProperties(result)
+      if (propsData) {
+        const result = (propsData as Record<string, unknown>[]).map((p) => {
+          const records = ((recordsData || []) as Record<string, unknown>[]).filter((r) => r.property_id === p.id)
+          const analysis = ((analysesData || []) as Record<string, unknown>[]).find((a) => a.property_id === p.id) || null
+          return dbToProperty(p, records, analysis)
+        })
+        setProperties(result)
+      }
+    } catch (err) {
+      console.error('加载房源数据失败:', err)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [user])
 
   // 加载列配置

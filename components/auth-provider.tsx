@@ -21,21 +21,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const sb = getSupabase()
-    // 获取当前 session
-    sb.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    let subscription: { unsubscribe: () => void } | null = null
+    let settled = false
 
-    // 监听登录状态变化
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-    })
+    const settle = () => {
+      if (!settled) {
+        settled = true
+        setLoading(false)
+      }
+    }
 
-    return () => subscription.unsubscribe()
+    // 10秒超时兜底，防止网络问题导致永远加载
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        console.warn('认证检查超时，跳过加载')
+        settle()
+      }
+    }, 10000)
+
+    try {
+      const sb = getSupabase()
+
+      // 获取当前 session
+      sb.auth.getSession()
+        .then(({ data: { session } }) => {
+          setSession(session)
+          setUser(session?.user ?? null)
+        })
+        .catch((err) => {
+          console.error('获取会话失败:', err)
+        })
+        .finally(() => {
+          settle()
+        })
+
+      // 监听登录状态变化
+      const { data } = sb.auth.onAuthStateChange((_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+      })
+      subscription = data.subscription
+    } catch (err) {
+      // getSupabase() 可能因配置缺失抛出同步错误
+      console.error('Supabase 初始化失败:', err)
+      settle()
+    }
+
+    return () => {
+      clearTimeout(timeout)
+      subscription?.unsubscribe()
+    }
   }, [])
 
   const signUp = async (email: string, password: string, username?: string) => {
