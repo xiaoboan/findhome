@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Home, Lock, User, Camera, GitCompareArrows, MapPin, ChevronDown, Pencil, ClipboardList, Table2, Shield, Zap, Smartphone } from 'lucide-react'
+import { Home, Lock, User, Camera, GitCompareArrows, MapPin, ChevronDown, Pencil, ClipboardList, Table2, Shield, Zap, Smartphone, Monitor } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -106,6 +106,10 @@ export function LoginPage() {
           </Button>
           <p className="text-xs text-muted-foreground">
             无需下载 &middot; 注册即送示例数据
+          </p>
+          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground/70 md:hidden">
+            <Monitor className="h-3 w-3" />
+            推荐电脑或平板横屏使用，体验更佳
           </p>
         </div>
 
@@ -286,8 +290,8 @@ export function LoginPage() {
               永久免费
             </span>
             <span className="flex items-center gap-1">
-              <Smartphone className="h-3.5 w-3.5" />
-              手机电脑都能用
+              <Monitor className="h-3.5 w-3.5" />
+              电脑平板体验更佳
             </span>
             <span className="flex items-center gap-1">
               <Shield className="h-3.5 w-3.5" />
