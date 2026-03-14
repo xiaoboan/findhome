@@ -54,16 +54,10 @@ export default function FindHomePage() {
   // 是否存在示例数据
   const hasDemoData = properties.some((p) => p.isDemo)
 
-  // 认证加载中
+  // 认证加载中 — 用空白占位，不显示「加载中」文字
+  // 避免 SSR 输出加载动画导致安卓手机 JS 未 hydrate 时长期显示「加载中」
   if (authLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">加载中...</p>
-        </div>
-      </div>
-    )
+    return <div className="h-screen bg-background" />
   }
 
   // 未登录 -> 登录页

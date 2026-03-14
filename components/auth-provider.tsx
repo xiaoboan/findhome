@@ -31,13 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // 10秒超时兜底，防止网络问题导致永远加载
+    // 5秒超时兜底，防止网络问题导致永远加载
     const timeout = setTimeout(() => {
       if (!settled) {
         console.warn('认证检查超时，跳过加载')
         settle()
       }
-    }, 10000)
+    }, 5000)
 
     try {
       const sb = getSupabase()
