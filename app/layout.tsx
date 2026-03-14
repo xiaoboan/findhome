@@ -62,22 +62,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: `
-          window.onerror = function(msg, url, line, col, err) {
-            document.body.innerHTML = '<pre style="padding:20px;font-size:14px;word-break:break-all;">'
-              + '页面加载出错:\\n' + msg + '\\n'
-              + (url ? '文件: ' + url + ':' + line + ':' + col + '\\n' : '')
-              + (err && err.stack ? err.stack : '')
-              + '</pre>';
-          };
-          window.onunhandledrejection = function(e) {
-            document.body.innerHTML = '<pre style="padding:20px;font-size:14px;word-break:break-all;">'
-              + '异步错误:\\n' + (e.reason ? (e.reason.stack || e.reason.message || String(e.reason)) : String(e))
-              + '</pre>';
-          };
-        `}} />
-      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
