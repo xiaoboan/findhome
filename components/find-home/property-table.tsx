@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, GripVertical, Filter, Sparkles, ExternalLink, ImageIcon, Camera } from 'lucide-react'
+import { Heart, Pencil, Trash2, ChevronUp, ChevronDown, Plus, X, Settings2, GripVertical, Filter, ExternalLink, ImageIcon, Camera } from 'lucide-react'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -137,8 +137,6 @@ interface PropertyTableProps {
   onSort: (field: SortField) => void
   stats: { total: number; viewed: number }
   onScreenshot?: () => void
-  onClearDemoData?: () => void
-  showClearDemo?: boolean
   propertyMode?: PropertyMode
 }
 
@@ -177,8 +175,6 @@ export function PropertyTable({
   onSort,
   stats,
   onScreenshot,
-  onClearDemoData,
-  showClearDemo,
   propertyMode = 'buy',
 }: PropertyTableProps) {
   const isEditMode = viewMode === 'edit'
@@ -797,17 +793,6 @@ export function PropertyTable({
           <span className="hidden sm:inline text-sm text-muted-foreground">
             显示 {visibleColumns.length} / {columns.length} 列
           </span>
-          {showClearDemo && onClearDemoData && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
-              onClick={onClearDemoData}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">一键删除</span>示例数据
-            </Button>
-          )}
           {activeFilterCount > 0 && (
             <span className="flex items-center gap-1 text-sm">
               <Filter className="h-3 w-3 text-primary" />

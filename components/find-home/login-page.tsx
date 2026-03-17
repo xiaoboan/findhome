@@ -105,7 +105,7 @@ export function LoginPage() {
             免费开始使用
           </Button>
           <p className="text-xs text-muted-foreground">
-            无需下载 &middot; 注册即送示例数据
+            无需下载 &middot; 免费使用
           </p>
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground/70 md:hidden">
             <Monitor className="h-3 w-3" />
@@ -217,7 +217,7 @@ export function LoginPage() {
                 {isSignUp ? '30 秒创建账号' : '欢迎回来'}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {isSignUp ? '注册后自动生成示例数据，立即体验全部功能' : '登录后继续你的看房决策'}
+                {isSignUp ? '注册后即可开始记录你的看房之旅' : '登录后继续你的看房决策'}
               </p>
             </CardHeader>
             <CardContent>

@@ -226,27 +226,6 @@ export function useProperties() {
       }, { onConflict: 'user_id' })
   }, [user])
 
-  // 删除示例数据（同步清理图片）
-  const clearDemoProperties = useCallback(async () => {
-    if (!user) return
-    const demoProps = properties.filter((p) => p.isDemo)
-    if (demoProps.length === 0) return
-    // 收集所有图片 URL
-    const imageUrls: string[] = []
-    for (const prop of demoProps) {
-      if (prop.coverImage) imageUrls.push(prop.coverImage)
-      for (const record of prop.viewingRecords) {
-        imageUrls.push(...record.photos)
-      }
-    }
-    Promise.all(imageUrls.map((url) => deleteImage(url).catch(() => {})))
-    await getSupabase()
-      .from('houses')
-      .delete()
-      .in('id', demoProps.map((p) => p.id))
-    setProperties((prev) => prev.filter((p) => !p.isDemo))
-  }, [user, properties])
-
   // 保存用户城市
   const saveCity = useCallback(async (newCity: string) => {
     setCity(newCity)
@@ -277,7 +256,6 @@ export function useProperties() {
     updateProperty,
     deleteProperty,
     toggleFavorite,
-    clearDemoProperties,
     setColumns: saveColumns,
     setCity: saveCity,
     setPropertyMode: savePropertyMode,

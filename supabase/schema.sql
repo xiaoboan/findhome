@@ -129,77 +129,14 @@ create trigger column_configs_updated_at
   for each row execute function update_updated_at();
 
 -- ============================================
--- 新用户注册时自动创建 profile + 默认房源数据
+-- 新用户注册时自动创建 profile
 -- ============================================
 create or replace function handle_new_user()
 returns trigger as $$
-declare
-  p1_id uuid; p2_id uuid; p3_id uuid; p4_id uuid; p5_id uuid; p6_id uuid;
 begin
   -- 创建 profile
   insert into public.profiles (id, email)
   values (new.id, new.email);
-
-  -- 插入 6 条默认房源（is_demo 标记，方便一键清除）
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, cover_image, is_demo)
-  values (gen_random_uuid(), new.id, '万科金域华府', '12-1501', 520, 5.2, '3室2厅2卫', 100, '朝阳区', '15/28层', '南北通透', '精装修', 5, 'viewed', '{"采光好","南北通透","地铁近"}', '2024-03-15', true, '/demo/wanke.jpg', true)
-  returning id into p1_id;
-
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, cover_image, is_demo)
-  values (gen_random_uuid(), new.id, '龙湖春江郦城', '5-802', 380, 4.75, '2室2厅1卫', 80, '海淀区', '8/18层', '东南', '毛坯', 3, 'pending', '{"房东急售","可议价","学区房"}', false, '/demo/longhu.jpg', true)
-  returning id into p2_id;
-
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, cover_image, is_demo)
-  values (gen_random_uuid(), new.id, '绿地海珀云庭', '8-2203', 680, 5.67, '4室2厅2卫', 120, '浦东新区', '22/30层', '南', '豪装', 2, 'viewed', '{"豪装","江景房","品牌开发商"}', '2024-03-10', true, '/demo/lvdi.jpg', true)
-  returning id into p3_id;
-
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, cover_image, is_demo)
-  values (gen_random_uuid(), new.id, '保利天悦', '3-1204', 450, 5.0, '3室2厅1卫', 90, '天河区', '12/25层', '西南', '简装', 8, 'sold', '{"已售","地铁上盖"}', '2024-02-20', false, '/demo/baoli.jpg', true)
-  returning id into p4_id;
-
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, is_favorite, cover_image, is_demo)
-  values (gen_random_uuid(), new.id, '中海锦城', '17-603', 320, 4.0, '2室1厅1卫', 80, '南山区', '6/20层', '北', '精装修', 10, 'pending', '{"低楼层","噪音大","价格便宜"}', false, '/demo/zhonghai.jpg', true)
-  returning id into p5_id;
-
-  insert into public.houses (id, user_id, name, room_number, price, price_per_sqm, layout, area, district, floor, orientation, decoration, age, status, tags, last_viewing, is_favorite, cover_image, is_demo)
-  values (gen_random_uuid(), new.id, '融创壹号院', '21-1802', 580, 5.27, '3室2厅2卫', 110, '江北新区', '18/32层', '南北通透', '精装修', 1, 'viewed', '{"次新房","采光好","户型方正"}', '2024-03-12', true, '/demo/rongchuang.jpg', true)
-  returning id into p6_id;
-
-  -- 插入看房记录
-  insert into public.viewing_records (property_id, visit_number, date, notes, photos) values
-    (p1_id, 2, '2024-03-15', '第二次看房，整体感觉不错，采光很好，客厅朝南，下午阳光充足。楼下有个小花园，环境安静。', '{}'),
-    (p1_id, 1, '2024-03-01', '首次看房，整体印象良好。房东态度友好，房子保养得不错。', '{}'),
-    (p3_id, 1, '2024-03-10', '高层江景视野很好，装修风格现代简约，家具家电齐全可直接入住。缺点是价格偏高。', '{}'),
-    (p4_id, 1, '2024-02-20', '地铁上盖位置非常好，但已经被其他买家签约了。', '{}'),
-    (p6_id, 1, '2024-03-12', '房子很新，几乎没怎么住过。户型方正，得房率高。小区绿化很好，有儿童游乐设施。', '{}');
-
-  -- 插入 AI 分析
-  insert into public.ai_analyses (property_id, pros, cons, suitable_for, negotiation_tips) values
-    (p1_id,
-     '{"采光充足，南北通透","小区环境优美，绿化率高","距离地铁站步行5分钟","房龄较新，物业管理规范"}',
-     '{"单价略高于周边均价","主卧面积偏小","停车位紧张"}',
-     '{"改善型家庭","有孩子的家庭","注重通勤便利的上班族"}',
-     '{"可尝试以周边成交价为参考议价","房东急售，有5-10万议价空间","建议关注同小区其他房源对比"}'),
-    (p2_id,
-     '{"价格低于市场均价","房龄新，设施完善","对口优质学区"}',
-     '{"毛坯房需要装修投入","朝向非正南","楼层偏低"}',
-     '{"首次置业刚需","有学区需求的家庭","投资客"}',
-     '{"房东急售，议价空间较大","可争取10-15万优惠","注意了解急售原因"}'),
-    (p3_id,
-     '{"高层江景，视野开阔","豪华装修，拎包入住","品牌开发商，品质有保障","小区配套完善"}',
-     '{"总价较高","物业费偏高","距离地铁站较远"}',
-     '{"高端改善需求","注重生活品质的家庭","有车一族"}',
-     '{"高端房源议价空间有限","可尝试争取车位或物业费优惠","关注开发商促销活动"}'),
-    (p5_id,
-     '{"价格实惠，性价比高","精装修省去装修成本","小区成熟，配套完善"}',
-     '{"朝北采光差","临街噪音较大","房龄偏老"}',
-     '{"预算有限的刚需","过渡性居住","出租投资"}',
-     '{"因朝向和噪音问题可大力议价","预计有15-20万议价空间","可要求业主承担部分税费"}'),
-    (p6_id,
-     '{"次新房，品质有保障","户型方正，空间利用率高","小区配套完善","南北通透，通风采光好"}',
-     '{"新区配套仍在完善中","距离市中心较远","周边商业较少"}',
-     '{"改善型需求","有孩子的家庭","看好新区发展的投资者"}',
-     '{"新房限售期刚过，业主可能急于变现","可尝试议价8-12万","关注同期房源挂牌价格"}');
 
   return new;
 end;

@@ -39,7 +39,6 @@ export function dbToProperty(row: any, viewingRecords: any[], aiAnalysis: any | 
         }
       : undefined,
     customFields: row.custom_fields || {},
-    isDemo: row.is_demo ?? false,
     sourceUrl: row.source_url || '',
     longitude: row.longitude ?? undefined,
     latitude: row.latitude ?? undefined,

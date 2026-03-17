@@ -47,8 +47,6 @@ export interface Property {
   }
   // 自定义字段存储
   customFields?: Record<string, string | number>
-  // 是否为示例数据
-  isDemo?: boolean
   // 房源链接（安居客、贝壳等平台）
   sourceUrl?: string
   // 经纬度（高德坐标系 GCJ-02）

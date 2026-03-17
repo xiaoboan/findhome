@@ -37,7 +37,6 @@ export default function FindHomePage() {
     setColumns,
     setCity,
     setPropertyMode,
-    clearDemoProperties,
   } = useProperties()
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -50,9 +49,6 @@ export default function FindHomePage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({})
   const fabRef = useRef<FloatingActionButtonRef>(null)
-
-  // 是否存在示例数据
-  const hasDemoData = properties.some((p) => p.isDemo)
 
   // 认证加载中 — 用空白占位，不显示「加载中」文字
   // 避免 SSR 输出加载动画导致安卓手机 JS 未 hydrate 时长期显示「加载中」
@@ -260,13 +256,6 @@ export default function FindHomePage() {
               stats={stats}
               propertyMode={propertyMode}
               onScreenshot={() => fabRef.current?.triggerScreenshot()}
-              showClearDemo={hasDemoData}
-              onClearDemoData={async () => {
-                await clearDemoProperties()
-                setActivePropertyId(null)
-                setSelectedIds([])
-                setViewMode('list')
-              }}
             />
           </div>
 
