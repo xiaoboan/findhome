@@ -458,13 +458,6 @@ export default function FindHomePage() {
                 stats={stats}
                 propertyMode={propertyMode}
                 onScreenshot={() => fabRef.current?.triggerScreenshot()}
-                showClearDemo={hasDemoData}
-                onClearDemoData={async () => {
-                  await clearDemoProperties()
-                  setActivePropertyId(null)
-                  setSelectedIds([])
-                  setViewMode('list')
-                }}
               />
             </div>
           </ResizablePanel>
