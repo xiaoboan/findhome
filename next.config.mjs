@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  generateBuildId: () => Date.now().toString(),
   typescript: {
     ignoreBuildErrors: true,
   },

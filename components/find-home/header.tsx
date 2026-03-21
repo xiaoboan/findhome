@@ -299,7 +299,7 @@ export function Header({
             <Popover>
               <PopoverTrigger asChild>
                 <Avatar className="h-8 w-8 md:h-10 md:w-10 cursor-pointer border-2 border-border hover:border-primary transition-colors shadow-sm">
-                  <AvatarImage src="/placeholder-user.jpg" alt="用户头像" />
+                  <AvatarImage src="/placeholder.svg" alt="用户头像" />
                   <AvatarFallback className="bg-accent text-accent-foreground">
                     <User className="h-4 w-4" />
                   </AvatarFallback>

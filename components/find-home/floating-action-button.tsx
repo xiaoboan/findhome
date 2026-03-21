@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
-import { Plus, Camera, FileText, Sparkles, X, Loader2, CheckCircle2, RotateCw, ImageIcon, Minimize2, Square } from 'lucide-react'
+import { Plus, Camera, FileText, X, Loader2, CheckCircle2, RotateCw, ImageIcon, Minimize2, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -222,13 +222,8 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
   }
 
   const actions = [
-    {
-      icon: Camera,
-      label: '截图识别',
-      onClick: () => fileInputRef.current?.click(),
-    },
+    { icon: Camera, label: '截图识别', onClick: () => fileInputRef.current?.click() },
     { icon: FileText, label: '手动添加', onClick: onAddProperty },
-    { icon: Sparkles, label: 'AI分析', onClick: () => console.log('AI分析') },
   ]
 
   return (
