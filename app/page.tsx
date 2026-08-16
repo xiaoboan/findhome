@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { GitCompareArrows } from 'lucide-react'
+import { ArrowRight, GitCompareArrows, ListChecks } from 'lucide-react'
 import { ViewMode, SortField, SortOrder, Property } from '@/types/property'
 import { useAuth } from '@/components/auth-provider'
 import { useProperties } from '@/hooks/use-properties'
@@ -49,6 +49,7 @@ export default function FindHomePage() {
   const [sortField, setSortField] = useState<SortField>('lastViewing')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({})
+  const [activationComplete, setActivationComplete] = useState(false)
   const fabRef = useRef<FloatingActionButtonRef>(null)
   const comparedSelectionRef = useRef('')
   const activationTrackedRef = useRef('')
@@ -58,6 +59,13 @@ export default function FindHomePage() {
 
   useEffect(() => {
     if (!user || dataLoading) return
+    const activationStorageKey = `findhome_activation_${user.id}_${propertyMode}`
+    setActivationComplete(false)
+    if (sessionStorage.getItem(activationStorageKey)) {
+      setActivationComplete(true)
+      return
+    }
+
     const milestone = modeProperties.length >= 3 ? 3 : modeProperties.length >= 1 ? 1 : 0
     if (!milestone) return
 
@@ -79,12 +87,16 @@ export default function FindHomePage() {
 
     if (!user || modeProperties.length < 3) return
     const activationSignature = `${user.id}_${propertyMode}`
+    const activationStorageKey = `findhome_activation_${activationSignature}`
     if (activationSignature === activationTrackedRef.current) return
     activationTrackedRef.current = activationSignature
 
-    const storageKey = `findhome_activation_${activationSignature}`
-    if (sessionStorage.getItem(storageKey)) return
-    sessionStorage.setItem(storageKey, '1')
+    if (sessionStorage.getItem(activationStorageKey)) {
+      setActivationComplete(true)
+      return
+    }
+    sessionStorage.setItem(activationStorageKey, '1')
+    setActivationComplete(true)
     trackEvent('activation_completed', {
       mode: propertyMode,
       property_count: modeProperties.length,
@@ -183,6 +195,17 @@ export default function FindHomePage() {
     viewed: modeProperties.filter((p) => p.status === 'viewed').length,
   }
 
+  const activationCount = Math.min(modeProperties.length, 3)
+  const showActivationGuide = !dataLoading && activationCount > 0 && !activationComplete
+  const handleActivationNext = () => {
+    if (activationCount < 3) {
+      fabRef.current?.triggerScreenshot()
+      return
+    }
+    setIsCompareSelecting(true)
+    setViewMode('list')
+  }
+
   // 编辑模式下选中房源也显示详情
   const showDetail = (viewMode === 'detail' || (viewMode === 'edit' && activePropertyId)) && activeProperty
   const showCompare = viewMode === 'compare' && selectedProperties.length >= 2
@@ -223,6 +246,31 @@ export default function FindHomePage() {
         filterTag={filterTag}
         onClearFilter={() => setFilterTag(null)}
       />
+
+      {showActivationGuide && (
+        <div className="shrink-0 border-b border-border/60 bg-card/90 px-4 py-2.5">
+          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <ListChecks className="h-4 w-4 text-primary" aria-hidden="true" />
+              <span>激活进度</span>
+              <span className="tabular-nums text-primary">{activationCount}/3 套房源</span>
+            </div>
+            <div className="h-1.5 min-w-[96px] flex-1 overflow-hidden rounded-full bg-muted sm:max-w-52" aria-label={`已录入 ${activationCount} 套，共 3 套`}>
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300"
+                style={{ width: `${(activationCount / 3) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {activationCount < 3 ? `再录入 ${3 - activationCount} 套，然后做一次对比` : '房源已齐，下一步完成一次对比'}
+            </span>
+            <Button size="sm" variant="outline" className="ml-auto h-8 gap-1.5" onClick={handleActivationNext}>
+              {activationCount < 3 ? '继续录入' : '开始对比'}
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {dataLoading ? (
         <div className="flex flex-1 items-center justify-center">
