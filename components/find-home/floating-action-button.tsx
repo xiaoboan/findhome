@@ -18,10 +18,11 @@ import { ColumnConfig, PropertyMode } from '@/types/property'
 import { parseScreenshot, ParsedProperty } from '@/lib/ai'
 import { Progress } from '@/components/ui/progress'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { trackEvent } from '@/lib/analytics'
 
 interface FloatingActionButtonProps {
   onAddProperty: () => void
-  onAddFromScreenshot: (data: ParsedProperty, imageFile: File) => void
+  onAddFromScreenshot: (data: ParsedProperty, imageFile: File) => void | Promise<void>
   columns: ColumnConfig[]
   propertyMode: PropertyMode
 }
@@ -30,7 +31,7 @@ export interface FloatingActionButtonRef {
   triggerScreenshot: () => void
 }
 
-type TaskStatus = 'pending' | 'parsing' | 'done' | 'error' | 'cancelled'
+type TaskStatus = 'pending' | 'parsing' | 'ready' | 'adding' | 'done' | 'error' | 'cancelled'
 
 interface ParseTask {
   id: string
@@ -38,6 +39,7 @@ interface ParseTask {
   preview: string
   status: TaskStatus
   result?: ParsedProperty
+  preparedFile?: File
   error?: string
 }
 
@@ -51,13 +53,16 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
   const isMobile = useIsMobile()
 
   const doneCount = tasks.filter(t => t.status === 'done').length
+  const readyCount = tasks.filter(t => t.status === 'ready').length
   const errorCount = tasks.filter(t => t.status === 'error').length
   const cancelledCount = tasks.filter(t => t.status === 'cancelled').length
   const totalCount = tasks.length
   const finishedCount = doneCount + errorCount + cancelledCount
+  const recognizedCount = readyCount + doneCount + errorCount + cancelledCount
+  const hasProcessingTasks = tasks.some(t => t.status === 'pending' || t.status === 'parsing' || t.status === 'adding')
   const isAllFinished = totalCount > 0 && finishedCount === totalCount
-  const hasBackgroundTasks = totalCount > 0 && !isAllFinished && !showDialog
-  const progressPercent = totalCount > 0 ? Math.round((finishedCount / totalCount) * 100) : 0
+  const hasBackgroundTasks = totalCount > 0 && hasProcessingTasks && !showDialog
+  const progressPercent = totalCount > 0 ? Math.round((recognizedCount / totalCount) * 100) : 0
 
   useImperativeHandle(ref, () => ({
     triggerScreenshot: () => {
@@ -84,6 +89,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
     }))
 
     setTasks(newTasks)
+    trackEvent('screenshot_batch_started', { count: newTasks.length, mode: propertyMode })
     setShowDialog(true)
 
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -101,6 +107,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
           ? { ...t, status: 'cancelled' as TaskStatus }
           : t
       ))
+
       return
     }
 
@@ -130,10 +137,14 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
       }
 
       setTasks(prev => prev.map(t =>
-        t.id === taskId ? { ...t, status: 'done' as TaskStatus, result: data } : t
+        t.id === taskId ? {
+          ...t,
+          status: 'ready' as TaskStatus,
+          result: data,
+          preparedFile: compressedFile,
+        } : t
       ))
-
-      onAddFromScreenshot(data, compressedFile)
+      trackEvent('screenshot_parsed', { mode: propertyMode })
     } catch (err) {
       if (abortControllerRef.current?.signal.aborted) {
         setTasks(prev => prev.map(t =>
@@ -155,6 +166,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
       setTasks(prev => prev.map(t =>
         t.id === taskId ? { ...t, status: 'error' as TaskStatus, error: errorMsg } : t
       ))
+      trackEvent('screenshot_parse_failed', { mode: propertyMode })
     }
   }
 
@@ -169,11 +181,37 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
     }
   }
 
+  const handleConfirm = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task?.result || task.status !== 'ready') return
+
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'adding' as TaskStatus } : t))
+    try {
+      await onAddFromScreenshot(task.result, task.preparedFile || task.file)
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'done' as TaskStatus } : t))
+      trackEvent('screenshot_confirmed', { mode: propertyMode })
+    } catch (error) {
+      console.error('添加识别结果失败:', error)
+      setTasks(prev => prev.map(t => t.id === taskId ? {
+        ...t,
+        status: 'error' as TaskStatus,
+        error: '添加失败，请重试',
+      } : t))
+    }
+  }
+
+  const handleConfirmAll = async () => {
+    const readyIds = tasks.filter(task => task.status === 'ready').map(task => task.id)
+    for (const taskId of readyIds) {
+      await handleConfirm(taskId)
+    }
+  }
+
   // 停止识别：取消所有未完成的任务
   const handleStop = useCallback(() => {
     abortControllerRef.current?.abort()
     setTasks(prev => prev.map(t =>
-      t.status === 'pending' || t.status === 'parsing'
+      t.status === 'pending' || t.status === 'parsing' || t.status === 'ready'
         ? { ...t, status: 'cancelled' as TaskStatus }
         : t
     ))
@@ -217,7 +255,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
     if (data.name) parts.push(data.name)
     if (data.layout) parts.push(data.layout)
     if (data.area) parts.push(`${data.area}m²`)
-    if (data.price) parts.push(`${data.price}万`)
+    if (data.price) parts.push(`${data.price}${propertyMode === 'rent' ? '元/月' : '万'}`)
     return parts.join(' · ') || '已识别'
   }
 
@@ -294,7 +332,9 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
               <span className="text-sm font-normal text-muted-foreground text-right">
                 {isAllFinished
                   ? `完成 ${doneCount}/${totalCount}${errorCount > 0 ? `，失败 ${errorCount}` : ''}${cancelledCount > 0 ? `，已停止 ${cancelledCount}` : ''}`
-                  : `识别中 ${doneCount + errorCount}/${totalCount}`
+                  : readyCount > 0 && !hasProcessingTasks
+                    ? `待确认 ${readyCount} 张`
+                    : `识别中 ${recognizedCount}/${totalCount}`
                 }
               </span>
             </DialogTitle>
@@ -319,7 +359,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
                   </div>
 
                   <div className="flex-1 min-w-0 overflow-hidden">
-                    {task.status === 'done' && task.result ? (
+                    {(task.status === 'ready' || task.status === 'adding' || task.status === 'done') && task.result ? (
                       <p className="text-xs sm:text-sm font-medium truncate">{formatSummary(task.result)}</p>
                     ) : task.status === 'error' ? (
                       <p className="text-xs sm:text-sm text-destructive truncate">{task.error}</p>
@@ -329,6 +369,8 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
                     <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
                       {task.status === 'pending' && '等待中...'}
                       {task.status === 'parsing' && '正在识别...'}
+                      {task.status === 'ready' && '请确认后添加'}
+                      {task.status === 'adding' && '正在添加...'}
                       {task.status === 'done' && '已添加到房源列表'}
                       {task.status === 'error' && '识别失败'}
                       {task.status === 'cancelled' && '已停止'}
@@ -341,6 +383,14 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
                     )}
                     {task.status === 'parsing' && (
                       <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    )}
+                    {task.status === 'adding' && (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    )}
+                    {task.status === 'ready' && (
+                      <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleConfirm(task.id)}>
+                        添加
+                      </Button>
                     )}
                     {task.status === 'done' && (
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -370,6 +420,20 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
               <Button size="sm" onClick={handleClose}>
                 完成
               </Button>
+            ) : readyCount > 0 && !hasProcessingTasks ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setShowStopConfirm(true)}
+                >
+                  放弃结果
+                </Button>
+                <Button size="sm" onClick={handleConfirmAll}>
+                  全部确认添加
+                </Button>
+              </>
             ) : (
               <>
                 <Button
@@ -400,9 +464,9 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
       <AlertDialog open={showStopConfirm} onOpenChange={setShowStopConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>停止识别</AlertDialogTitle>
+            <AlertDialogTitle>放弃未添加结果</AlertDialogTitle>
             <AlertDialogDescription>
-              还有 {totalCount - finishedCount} 张图片未完成识别，已完成的 {doneCount} 张不受影响。
+              还有 {totalCount - finishedCount} 张图片未添加，已完成的 {doneCount} 张不受影响。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -411,7 +475,7 @@ export const FloatingActionButton = forwardRef<FloatingActionButtonRef, Floating
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleStop}
             >
-              停止识别
+              确认放弃
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

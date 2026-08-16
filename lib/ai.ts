@@ -1,4 +1,5 @@
 import { ColumnConfig, PropertyMode } from '@/types/property'
+import { getSupabase } from '@/lib/supabase'
 
 // 从截图中提取的房源数据
 export interface ParsedProperty {
@@ -18,12 +19,13 @@ export interface ParsedProperty {
 }
 
 // 构建 schema 描述，让模型知道要提取哪些字段
-function buildSchemaPrompt(customColumns: ColumnConfig[]): string {
+function buildSchemaPrompt(customColumns: ColumnConfig[], mode: PropertyMode): string {
+  const isBuy = mode === 'buy'
   const builtinFields = [
     { key: 'name', label: '小区名称', type: 'string' },
     { key: 'roomNumber', label: '房号（如39-1201代表39栋1201房间）', type: 'string' },
-    { key: 'price', label: '总价（万元）', type: 'number' },
-    { key: 'pricePerSqm', label: '单价（万元/平米）', type: 'number' },
+    { key: 'price', label: isBuy ? '总价（万元）' : '月租金（元/月）', type: 'number' },
+    { key: 'pricePerSqm', label: isBuy ? '单价（万元/平米）' : '每平米月租（元/平米/月）', type: 'number' },
     { key: 'layout', label: '户型（如3室2厅1卫）', type: 'string' },
     { key: 'area', label: '面积（平方米）', type: 'number' },
     { key: 'district', label: '区域', type: 'string' },
@@ -63,11 +65,19 @@ export async function parseScreenshot(
   customColumns: ColumnConfig[],
   mode: PropertyMode = 'buy',
 ): Promise<ParsedProperty> {
-  const schemaPrompt = buildSchemaPrompt(customColumns)
+  const schemaPrompt = buildSchemaPrompt(customColumns, mode)
+  const { data: { session } } = await getSupabase().auth.getSession()
+
+  if (!session?.access_token) {
+    throw new Error('登录已过期，请重新登录')
+  }
 
   const res = await fetch('/api/parse-screenshot', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
     body: JSON.stringify({ imageBase64, mimeType, schemaPrompt, mode }),
   })
 

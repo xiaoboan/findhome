@@ -64,7 +64,6 @@ export function Header({
   onToggleCompare,
   onToggleMap,
   onPropertyModeChange,
-  canCompare,
   isCompareSelecting,
   filterTag,
   onClearFilter,

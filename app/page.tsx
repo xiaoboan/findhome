@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { GitCompareArrows } from 'lucide-react'
 import { ViewMode, SortField, SortOrder, Property } from '@/types/property'
 import { useAuth } from '@/components/auth-provider'
@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
+import { trackEvent } from '@/lib/analytics'
 
 export default function FindHomePage() {
   const isMobile = useIsMobile()
@@ -49,6 +50,32 @@ export default function FindHomePage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({})
   const fabRef = useRef<FloatingActionButtonRef>(null)
+  const comparedSelectionRef = useRef('')
+
+  const selectedProperties = properties.filter((p) => selectedIds.includes(p.id))
+  const modeProperties = properties.filter((p) => !p.mode || p.mode === propertyMode)
+
+  useEffect(() => {
+    if (!user || dataLoading) return
+    const milestone = modeProperties.length >= 3 ? 3 : modeProperties.length >= 1 ? 1 : 0
+    if (!milestone) return
+
+    const storageKey = `findhome_milestone_${user.id}_${propertyMode}_${milestone}`
+    if (sessionStorage.getItem(storageKey)) return
+    sessionStorage.setItem(storageKey, '1')
+    trackEvent('property_milestone_reached', { mode: propertyMode, count: milestone })
+  }, [user, dataLoading, modeProperties.length, propertyMode])
+
+  useEffect(() => {
+    if (viewMode !== 'compare' || selectedProperties.length < 2) return
+    const signature = selectedProperties.map((property) => property.id).sort().join(',')
+    if (signature === comparedSelectionRef.current) return
+    comparedSelectionRef.current = signature
+    trackEvent('comparison_started', {
+      mode: propertyMode,
+      count: selectedProperties.length,
+    })
+  }, [viewMode, selectedProperties, propertyMode])
 
   // 认证加载中 — 用空白占位，不显示「加载中」文字
   // 避免 SSR 输出加载动画导致安卓手机 JS 未 hydrate 时长期显示「加载中」
@@ -135,12 +162,10 @@ export default function FindHomePage() {
     ? properties.find((p) => p.id === activePropertyId)
     : null
 
-  const selectedProperties = properties.filter((p) => selectedIds.includes(p.id))
-
   // 统计数据
   const stats = {
-    total: properties.length,
-    viewed: properties.filter((p) => p.status === 'viewed').length,
+    total: modeProperties.length,
+    viewed: modeProperties.filter((p) => p.status === 'viewed').length,
   }
 
   // 编辑模式下选中房源也显示详情
@@ -157,7 +182,13 @@ export default function FindHomePage() {
         onSearchChange={setSearchQuery}
         onToggleEdit={() => setViewMode((prev) => (prev === 'edit' ? 'list' : 'edit'))}
         onToggleMap={() => setViewMode((prev) => (prev === 'map' ? 'list' : 'map'))}
-        onPropertyModeChange={setPropertyMode}
+        onPropertyModeChange={(mode) => {
+          setPropertyMode(mode)
+          setSelectedIds([])
+          setActivePropertyId(null)
+          setIsCompareSelecting(false)
+          setViewMode('list')
+        }}
         onToggleCompare={() => {
           if (viewMode === 'compare') {
             setViewMode('list')
@@ -364,6 +395,7 @@ export default function FindHomePage() {
                 <PropertyMap
                   properties={filteredProperties}
                   city={city}
+                  propertyMode={propertyMode}
                   onCityChange={setCity}
                   onClose={() => setViewMode('list')}
                   onViewDetail={(id: string) => {
@@ -381,6 +413,7 @@ export default function FindHomePage() {
           <PropertyMap
             properties={filteredProperties}
             city={city}
+            propertyMode={propertyMode}
             onCityChange={setCity}
             onClose={() => setViewMode('list')}
             onViewDetail={(id: string) => {
@@ -529,6 +562,9 @@ export default function FindHomePage() {
           if (data.tags?.length) initData.tags = data.tags
           if (data.customFields) initData.customFields = data.customFields
           const newId = await addProperty(initData)
+          if (!newId) {
+            throw new Error('房源添加失败')
+          }
           if (newId && user) {
             uploadImage(imageFile, user.id, newId)
               .then((coverUrl) => updateProperty(newId, { coverImage: coverUrl }))

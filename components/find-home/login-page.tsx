@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Home, Lock, User, Camera, GitCompareArrows, MapPin, ChevronDown, Pencil, ClipboardList, Table2, Shield, Zap, Smartphone, Monitor } from 'lucide-react'
+import { Home, Lock, User, Camera, GitCompareArrows, MapPin, ChevronDown, Pencil, ClipboardList, Table2, Shield, Zap, Monitor, CheckCircle2, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { trackEvent } from '@/lib/analytics'
 
 // 核心亮点（前3个大卡片展示）
 const highlights = [
@@ -37,6 +38,12 @@ const moreFeatures = [
   { icon: ClipboardList, title: '看房记录', desc: '文字+照片，时间轴回顾' },
 ]
 
+const demoProperties = [
+  { id: 'haitang', name: '海棠花园', room: '2-1602', price: 468, area: 89, commute: 42, highlight: '南北通透' },
+  { id: 'jiangwan', name: '江湾名邸', room: '1-802', price: 512, area: 96, commute: 31, highlight: '距地铁近' },
+  { id: 'yunqi', name: '云栖里', room: '7-1201', price: 439, area: 82, commute: 36, highlight: '总价最低' },
+]
+
 export function LoginPage() {
   const { signIn, signUp } = useAuth()
   const [isSignUp, setIsSignUp] = useState(false)
@@ -44,7 +51,14 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [demoSelectedIds, setDemoSelectedIds] = useState(['haitang', 'jiangwan'])
   const formRef = useRef<HTMLDivElement>(null)
+  const demoRef = useRef<HTMLElement>(null)
+
+  const selectedDemoProperties = demoProperties.filter((property) => demoSelectedIds.includes(property.id))
+  const cheapestDemo = selectedDemoProperties.reduce((best, property) => property.price < best.price ? property : best, selectedDemoProperties[0])
+  const largestDemo = selectedDemoProperties.reduce((best, property) => property.area > best.area ? property : best, selectedDemoProperties[0])
+  const shortestCommuteDemo = selectedDemoProperties.reduce((best, property) => property.commute < best.commute ? property : best, selectedDemoProperties[0])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,16 +78,23 @@ export function LoginPage() {
 
     setSubmitting(true)
     const fakeEmail = `${username.trim().toLowerCase()}@findhome.local`
+    trackEvent(isSignUp ? 'signup_started' : 'signin_started')
 
     if (isSignUp) {
       const { error: err } = await signUp(fakeEmail, password, username.trim())
       if (err) {
         setError(translateError(err))
+        trackEvent('signup_failed')
+      } else {
+        trackEvent('signup_succeeded')
       }
     } else {
       const { error: err } = await signIn(fakeEmail, password)
       if (err) {
         setError(translateError(err))
+        trackEvent('signin_failed')
+      } else {
+        trackEvent('signin_succeeded')
       }
     }
     setSubmitting(false)
@@ -81,6 +102,21 @@ export function LoginPage() {
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const scrollToDemo = () => {
+    trackEvent('landing_demo_opened')
+    demoRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const toggleDemoProperty = (id: string) => {
+    setDemoSelectedIds((current) => {
+      const next = current.includes(id)
+        ? current.filter((propertyId) => propertyId !== id)
+        : [...current, id]
+      trackEvent('landing_demo_interacted', { selected_count: next.length })
+      return next
+    })
   }
 
   return (
@@ -101,9 +137,21 @@ export function LoginPage() {
           替代你看房时的 Excel 和备忘录，帮你做出更好的决策
         </p>
         <div className="flex flex-col items-center gap-3">
-          <Button size="lg" onClick={scrollToForm} className="px-10 shadow-lg text-base h-12">
-            免费开始使用
-          </Button>
+          <div className="flex w-full max-w-sm flex-col gap-2 sm:flex-row sm:justify-center">
+            <Button
+              size="lg"
+              onClick={() => {
+                trackEvent('landing_cta_clicked', { location: 'hero' })
+                scrollToForm()
+              }}
+              className="h-12 px-8 text-base shadow-lg"
+            >
+              免费开始使用
+            </Button>
+            <Button size="lg" variant="outline" onClick={scrollToDemo} className="h-12 px-7 text-base">
+              先看示例
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">
             无需下载 &middot; 免费使用
           </p>
@@ -160,6 +208,95 @@ export function LoginPage() {
           <p className="text-lg md:text-2xl font-bold text-foreground">
             寻家帮你把<span className="text-primary">找房信息</span>管得明明白白
           </p>
+        </div>
+      </section>
+
+      {/* 无需登录的产品体验 */}
+      <section ref={demoRef} className="border-y border-border/50 bg-background py-12 md:py-20">
+        <div className="mx-auto max-w-5xl px-4">
+          <div className="mb-7 flex flex-col gap-3 md:mb-9 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="mb-2 text-xs font-medium text-primary">无需注册，直接体验</p>
+              <h2 className="text-xl font-bold text-foreground md:text-3xl">试着选出更适合你的两套房</h2>
+              <p className="mt-2 text-sm text-muted-foreground">点击房源切换选择，寻家会把关键差异整理出来。</p>
+            </div>
+            <span className="text-sm text-muted-foreground">已选 {demoSelectedIds.length} 套</span>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <table className="w-full min-w-[720px] border-collapse text-sm">
+              <thead className="bg-muted/70 text-left text-xs text-muted-foreground">
+                <tr>
+                  <th className="w-14 px-4 py-3">选择</th>
+                  <th className="px-4 py-3">候选房源</th>
+                  <th className="px-4 py-3">总价</th>
+                  <th className="px-4 py-3">面积</th>
+                  <th className="px-4 py-3">通勤</th>
+                  <th className="px-4 py-3">现场亮点</th>
+                </tr>
+              </thead>
+              <tbody>
+                {demoProperties.map((property) => {
+                  const selected = demoSelectedIds.includes(property.id)
+                  return (
+                    <tr
+                      key={property.id}
+                      onClick={() => toggleDemoProperty(property.id)}
+                      className={`cursor-pointer border-t border-border transition-colors ${selected ? 'bg-primary/5' : 'hover:bg-muted/40'}`}
+                    >
+                      <td className="px-4 py-4">
+                        <span className={`flex h-5 w-5 items-center justify-center rounded border ${selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border'}`}>
+                          {selected && <CheckCircle2 className="h-3.5 w-3.5" />}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="font-medium text-foreground">{property.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{property.room}</p>
+                      </td>
+                      <td className="px-4 py-4 font-semibold text-primary">{property.price} 万</td>
+                      <td className="px-4 py-4">{property.area} ㎡</td>
+                      <td className="px-4 py-4">{property.commute} 分钟</td>
+                      <td className="px-4 py-4">{property.highlight}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {selectedDemoProperties.length >= 2 ? (
+            <div className="mt-5 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
+              <div className="bg-card p-4">
+                <p className="text-xs text-muted-foreground">预算更低</p>
+                <p className="mt-1 font-semibold text-foreground">{cheapestDemo.name} · {cheapestDemo.price} 万</p>
+              </div>
+              <div className="bg-card p-4">
+                <p className="text-xs text-muted-foreground">面积更大</p>
+                <p className="mt-1 font-semibold text-foreground">{largestDemo.name} · {largestDemo.area} ㎡</p>
+              </div>
+              <div className="bg-card p-4">
+                <p className="text-xs text-muted-foreground">通勤更短</p>
+                <p className="mt-1 font-semibold text-foreground">{shortestCommuteDemo.name} · {shortestCommuteDemo.commute} 分钟</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
+              再选择一套房源，就能看到差异结论。
+            </div>
+          )}
+
+          <div className="mt-7 text-center">
+            <Button
+              onClick={() => {
+                trackEvent('landing_cta_clicked', { location: 'demo' })
+                scrollToForm()
+              }}
+              className="gap-2"
+            >
+              用我的房源开始
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -273,6 +410,7 @@ export function LoginPage() {
                     onClick={() => {
                       setIsSignUp(!isSignUp)
                       setError('')
+                      trackEvent('auth_mode_changed', { mode: isSignUp ? 'signin' : 'signup' })
                     }}
                     className="ml-1 font-medium text-primary hover:underline"
                   >

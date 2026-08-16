@@ -1,11 +1,60 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { toast } from 'sonner'
 import { Property, PropertyMode, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { getSupabase } from '@/lib/supabase'
 import { dbToProperty, propertyToDbUpdate } from '@/lib/db-transforms'
 import { deleteImage } from '@/lib/storage'
 import { useAuth } from '@/components/auth-provider'
+import { trackEvent } from '@/lib/analytics'
+
+async function syncViewingRecords(
+  sb: ReturnType<typeof getSupabase>,
+  propertyId: string,
+  records: Property['viewingRecords']
+) {
+  const { data: existing, error: fetchError } = await sb
+    .from('viewing_records')
+    .select('id')
+    .eq('property_id', propertyId)
+
+  if (fetchError) throw fetchError
+
+  const existingIds = new Set(((existing || []) as { id: string }[]).map((record) => record.id))
+  const newRecordIds = new Set(records.map((record) => record.id))
+  const toDelete = Array.from(existingIds).filter((id) => !newRecordIds.has(id))
+
+  if (toDelete.length > 0) {
+    const { error } = await sb.from('viewing_records').delete().in('id', toDelete)
+    if (error) throw error
+  }
+
+  for (const record of records) {
+    if (existingIds.has(record.id)) {
+      const { error } = await sb
+        .from('viewing_records')
+        .update({
+          date: record.date,
+          notes: record.notes,
+          visit_number: record.visitNumber,
+          photos: record.photos,
+        })
+        .eq('id', record.id)
+      if (error) throw error
+    } else {
+      const { error } = await sb.from('viewing_records').insert({
+        id: record.id,
+        property_id: propertyId,
+        date: record.date,
+        notes: record.notes,
+        visit_number: record.visitNumber,
+        photos: record.photos,
+      })
+      if (error) throw error
+    }
+  }
+}
 
 export function useProperties() {
   const { user } = useAuth()
@@ -14,6 +63,7 @@ export function useProperties() {
   const [city, setCity] = useState('')
   const [propertyMode, setPropertyMode] = useState<PropertyMode>('buy')
   const [loading, setLoading] = useState(true)
+  const updateQueuesRef = useRef(new Map<string, Promise<void>>())
 
   // 加载房源数据
   const fetchProperties = useCallback(async () => {
@@ -112,16 +162,24 @@ export function useProperties() {
       .select()
       .single()
 
-    if (!error && data) {
-      const newProp = dbToProperty(data, [], null)
-      setProperties((prev) => [...prev, newProp])
-      return newProp.id
+    if (error || !data) {
+      console.error('添加房源失败:', error)
+      toast.error('添加失败，请检查网络后重试')
+      return
     }
-  }, [user])
+
+    const newProp = dbToProperty(data, [], null)
+    setProperties((prev) => [...prev, newProp])
+    trackEvent('property_added', {
+      mode: newProp.mode || propertyMode,
+      source: initialData ? 'screenshot' : 'manual',
+    })
+    return newProp.id
+  }, [user, propertyMode])
 
   // 更新房源
-  const updateProperty = useCallback(async (id: string, updates: Partial<Property>) => {
-    if (!user) return
+  const updateProperty = useCallback((id: string, updates: Partial<Property>) => {
+    if (!user) return Promise.resolve()
     const sb = getSupabase()
 
     // 先更新本地状态，保证 UI 即时响应
@@ -129,86 +187,67 @@ export function useProperties() {
       prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
     )
 
-    // viewingRecords 单独处理
-    if (updates.viewingRecords) {
-      await syncViewingRecords(sb, id, updates.viewingRecords)
-    }
+    // 同一房源的写入串行执行，避免快速输入时旧请求覆盖新值。
+    const previous = updateQueuesRef.current.get(id) || Promise.resolve()
+    const task = previous
+      .catch(() => undefined)
+      .then(async () => {
+        if (updates.viewingRecords) {
+          await syncViewingRecords(sb, id, updates.viewingRecords)
+        }
 
-    const dbUpdates = propertyToDbUpdate(updates)
-    if (Object.keys(dbUpdates).length > 0) {
-      await sb.from('houses').update(dbUpdates).eq('id', id)
-    }
+        const dbUpdates = propertyToDbUpdate(updates)
+        if (Object.keys(dbUpdates).length > 0) {
+          const { error } = await sb.from('houses').update(dbUpdates).eq('id', id)
+          if (error) throw error
+        }
+      })
+      .catch((error) => {
+        console.error('保存房源失败:', error)
+        toast.error('保存失败，请检查网络后重试')
+      })
+      .finally(() => {
+        if (updateQueuesRef.current.get(id) === task) {
+          updateQueuesRef.current.delete(id)
+        }
+      })
+
+    updateQueuesRef.current.set(id, task)
+    return task
   }, [user])
-
-  // 同步看房记录
-  const syncViewingRecords = async (
-    sb: ReturnType<typeof getSupabase>,
-    propertyId: string,
-    records: Property['viewingRecords']
-  ) => {
-    const { data: existing } = await sb
-      .from('viewing_records')
-      .select('id')
-      .eq('property_id', propertyId)
-
-    const existingIds = new Set(((existing || []) as { id: string }[]).map((r) => r.id))
-    const newRecordIds = new Set(records.map((r) => r.id))
-
-    // 删除的记录
-    const toDelete = Array.from(existingIds).filter((id) => !newRecordIds.has(id))
-    if (toDelete.length > 0) {
-      await sb.from('viewing_records').delete().in('id', toDelete)
-    }
-
-    // 新增或更新
-    for (const record of records) {
-      if (existingIds.has(record.id)) {
-        await sb
-          .from('viewing_records')
-          .update({
-            date: record.date,
-            notes: record.notes,
-            visit_number: record.visitNumber,
-            photos: record.photos,
-          })
-          .eq('id', record.id)
-      } else {
-        await sb.from('viewing_records').insert({
-          id: record.id,
-          property_id: propertyId,
-          date: record.date,
-          notes: record.notes,
-          visit_number: record.visitNumber,
-          photos: record.photos,
-        })
-      }
-    }
-  }
 
   // 删除房源（同步清理 Storage 中的图片）
   const deleteProperty = useCallback(async (id: string) => {
     if (!user) return
     const prop = properties.find((p) => p.id === id)
-    if (prop) {
-      // 收集所有需要删除的图片 URL
-      const imageUrls: string[] = []
-      if (prop.coverImage) imageUrls.push(prop.coverImage)
-      for (const record of prop.viewingRecords) {
-        imageUrls.push(...record.photos)
-      }
-      // 并行删除，不阻塞主流程
-      Promise.all(imageUrls.map((url) => deleteImage(url).catch(() => {})))
+    const { error } = await getSupabase().from('houses').delete().eq('id', id)
+    if (error) {
+      console.error('删除房源失败:', error)
+      toast.error('删除失败，请稍后重试')
+      return
     }
-    await getSupabase().from('houses').delete().eq('id', id)
     setProperties((prev) => prev.filter((p) => p.id !== id))
-  }, [user, properties])
+    trackEvent('property_deleted', { mode: prop?.mode || propertyMode })
+
+    if (prop) {
+      const imageUrls = [
+        ...(prop.coverImage ? [prop.coverImage] : []),
+        ...prop.viewingRecords.flatMap((record) => record.photos),
+      ]
+      void Promise.allSettled(imageUrls.map((url) => deleteImage(url)))
+    }
+  }, [user, properties, propertyMode])
 
   // 切换收藏
   const toggleFavorite = useCallback(async (id: string) => {
     const prop = properties.find((p) => p.id === id)
     if (!prop || !user) return
     const newVal = !prop.isFavorite
-    await getSupabase().from('houses').update({ is_favorite: newVal }).eq('id', id)
+    const { error } = await getSupabase().from('houses').update({ is_favorite: newVal }).eq('id', id)
+    if (error) {
+      toast.error('收藏状态保存失败')
+      return
+    }
     setProperties((prev) =>
       prev.map((p) => (p.id === id ? { ...p, isFavorite: newVal } : p))
     )
@@ -239,6 +278,7 @@ export function useProperties() {
   // 保存买房/租房模式
   const savePropertyMode = useCallback(async (mode: PropertyMode) => {
     setPropertyMode(mode)
+    trackEvent('property_mode_changed', { mode })
     if (!user) return
     await getSupabase()
       .from('profiles')

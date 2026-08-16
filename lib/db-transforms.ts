@@ -67,8 +67,8 @@ export function propertyToDbUpdate(updates: Partial<Property>) {
   if (updates.coverImage !== undefined) result.cover_image = updates.coverImage
   if (updates.customFields !== undefined) result.custom_fields = updates.customFields
   if (updates.sourceUrl !== undefined) result.source_url = updates.sourceUrl
-  if (updates.longitude !== undefined) result.longitude = updates.longitude
-  if (updates.latitude !== undefined) result.latitude = updates.latitude
+  if ('longitude' in updates) result.longitude = updates.longitude ?? null
+  if ('latitude' in updates) result.latitude = updates.latitude ?? null
   if (updates.mode !== undefined) result.mode = updates.mode
   return result
 }

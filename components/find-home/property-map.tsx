@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { X, MapPin, Loader2, Navigation, ImageIcon, ChevronDown, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
-import { Property } from '@/types/property'
+import { Property, PropertyMode } from '@/types/property'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -18,6 +18,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 interface PropertyMapProps {
   properties: Property[]
   city: string
+  propertyMode: PropertyMode
   onCityChange: (city: string) => void
   onClose: () => void
   onViewDetail: (id: string) => void
@@ -75,7 +76,7 @@ function spreadOverlappingCoords(props: Property[]): Map<string, { lng: number; 
   return coordMap
 }
 
-export function PropertyMap({ properties, city, onCityChange, onClose, onViewDetail, onUpdateProperty }: PropertyMapProps) {
+export function PropertyMap({ properties, city, propertyMode, onCityChange, onClose, onViewDetail, onUpdateProperty }: PropertyMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null)
@@ -272,7 +273,7 @@ export function PropertyMap({ properties, city, onCityChange, onClose, onViewDet
             white-space: nowrap;
             line-height: 1.2;
             position: relative;
-          ">${p.price}万${isOverlapping ? `<span style="
+          ">${p.price}${propertyMode === 'rent' ? '元/月' : '万'}${isOverlapping ? `<span style="
             position: absolute;
             top: -6px;
             right: -6px;
@@ -327,7 +328,7 @@ export function PropertyMap({ properties, city, onCityChange, onClose, onViewDet
       // 延迟一帧确保标注渲染完成
       setTimeout(fitToMarkers, 50)
     }
-  }, [properties, mapReady, fitToMarkers])
+  }, [properties, mapReady, fitToMarkers, propertyMode])
 
   // geocoding 结束后自动缩放
   useEffect(() => {
@@ -546,7 +547,7 @@ export function PropertyMap({ properties, city, onCityChange, onClose, onViewDet
                       </Badge>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {p.layout} · {p.area}m² · <span className="text-primary font-medium">{p.price}万</span>
+                      {p.layout} · {p.area}m² · <span className="text-primary font-medium">{p.price}{propertyMode === 'rent' ? '元/月' : '万'}</span>
                     </span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -602,7 +603,7 @@ export function PropertyMap({ properties, city, onCityChange, onClose, onViewDet
 
                 <div className="flex items-center justify-between">
                   <span className="text-base font-bold text-primary">
-                    {selectedProperty.price}<span className="text-xs font-normal text-muted-foreground ml-0.5">万</span>
+                    {selectedProperty.price}<span className="text-xs font-normal text-muted-foreground ml-0.5">{propertyMode === 'rent' ? '元/月' : '万'}</span>
                   </span>
                   <Button
                     size="sm"

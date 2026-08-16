@@ -1,12 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { z } from 'zod'
 
-// 允许最大 10MB 的请求体（base64 编码后图片会膨胀约 33%）
+// 截图在客户端压缩到 2MB 左右，服务端再限制编码后的请求大小。
 export const runtime = 'nodejs'
 
+const requestSchema = z.object({
+  imageBase64: z.string().min(1).max(3 * 1024 * 1024),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  schemaPrompt: z.string().max(6000),
+  mode: z.enum(['buy', 'rent']).default('buy'),
+})
+
+const propertySchema = z.object({
+  name: z.string().max(100).optional(),
+  roomNumber: z.string().max(100).optional(),
+  price: z.number().nonnegative().optional(),
+  pricePerSqm: z.number().nonnegative().optional(),
+  layout: z.string().max(100).optional(),
+  area: z.number().nonnegative().optional(),
+  district: z.string().max(100).optional(),
+  floor: z.string().max(100).optional(),
+  orientation: z.string().max(100).optional(),
+  decoration: z.string().max(100).optional(),
+  age: z.number().nonnegative().optional(),
+  tags: z.array(z.string().max(40)).max(20).optional(),
+  customFields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+})
+
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
+
+function isRateLimited(userId: string) {
+  const now = Date.now()
+  const current = rateLimitStore.get(userId)
+  if (!current || current.resetAt <= now) {
+    rateLimitStore.set(userId, { count: 1, resetAt: now + 60_000 })
+    return false
+  }
+  current.count += 1
+  return current.count > 10
+}
+
 export async function POST(req: NextRequest) {
-  let body
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+
+  if (!supabaseUrl || !supabaseAnonKey || !token) {
+    return NextResponse.json({ error: '请先登录后再使用截图识别' }, { status: 401 })
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+  if (authError || !user) {
+    return NextResponse.json({ error: '登录已过期，请重新登录' }, { status: 401 })
+  }
+
+  if (isRateLimited(user.id)) {
+    return NextResponse.json({ error: '识别请求过于频繁，请一分钟后再试' }, { status: 429 })
+  }
+
+  const contentLength = Number(req.headers.get('content-length') || 0)
+  if (contentLength > 4 * 1024 * 1024) {
+    return NextResponse.json({ error: '图片过大，请压缩后重试' }, { status: 413 })
+  }
+
+  let parsedBody: z.infer<typeof requestSchema>
   try {
-    body = await req.json()
+    parsedBody = requestSchema.parse(await req.json())
   } catch {
     return NextResponse.json(
       { error: '请求格式错误，请重试' },
@@ -14,22 +77,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { imageBase64, mimeType, schemaPrompt, mode } = body
-
-  if (!imageBase64 || !mimeType) {
-    return NextResponse.json(
-      { error: '缺少图片数据' },
-      { status: 400 },
-    )
-  }
-
-  // 校验 base64 大小（约 8MB 上限，对应原图约 6MB）
-  if (imageBase64.length > 8 * 1024 * 1024) {
-    return NextResponse.json(
-      { error: '图片过大，请使用截图或压缩后重试' },
-      { status: 413 },
-    )
-  }
+  const { imageBase64, mimeType, schemaPrompt, mode } = parsedBody
 
   const baseUrl = process.env.AI_BASE_URL
   const apiKey = process.env.AI_API_KEY
@@ -101,6 +149,7 @@ ${schemaPrompt}
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(45_000),
     })
 
     if (!aiRes.ok) {
@@ -124,7 +173,7 @@ ${schemaPrompt}
       )
     }
 
-    const property = JSON.parse(jsonMatch[0])
+    const property = propertySchema.parse(JSON.parse(jsonMatch[0]))
     return NextResponse.json({ property })
   } catch (err) {
     console.error('parse-screenshot error:', err)
