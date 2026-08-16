@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { trackEvent } from '@/lib/analytics'
+import {
+  getInternalEmail,
+  getLegacyInternalEmail,
+  normalizeUsername,
+} from '@/lib/auth-identifier'
 
 // 核心亮点（前3个大卡片展示）
 const highlights = [
@@ -74,8 +79,21 @@ export function LoginPage({ authChecking = false }: LoginPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!username.trim()) {
+    const displayUsername = normalizeUsername(username)
+    if (!displayUsername) {
       setError('请输入用户名')
+      return
+    }
+    if (isSignUp && Array.from(displayUsername).length < 2) {
+      setError('用户名至少 2 个字符')
+      return
+    }
+    if (Array.from(displayUsername).length > 24) {
+      setError('用户名最多 24 个字符')
+      return
+    }
+    if (/\p{Cc}/u.test(displayUsername)) {
+      setError('用户名不能包含控制字符')
       return
     }
     if (!password) {
@@ -88,27 +106,41 @@ export function LoginPage({ authChecking = false }: LoginPageProps) {
     }
 
     setSubmitting(true)
-    const fakeEmail = `${username.trim().toLowerCase()}@findhome.local`
     trackEvent(isSignUp ? 'signup_started' : 'signin_started')
 
-    if (isSignUp) {
-      const { error: err } = await signUp(fakeEmail, password, username.trim())
-      if (err) {
-        setError(translateError(err))
-        trackEvent('signup_failed')
+    try {
+      const internalEmail = await getInternalEmail(displayUsername)
+
+      if (isSignUp) {
+        const { error: err } = await signUp(internalEmail, password, displayUsername)
+        if (err) {
+          setError(translateError(err))
+          trackEvent('signup_failed')
+        } else {
+          trackEvent('signup_succeeded')
+        }
       } else {
-        trackEvent('signup_succeeded')
+        let { error: err } = await signIn(internalEmail, password)
+        const legacyEmail = getLegacyInternalEmail(displayUsername)
+
+        if (err && legacyEmail !== internalEmail) {
+          const legacyResult = await signIn(legacyEmail, password)
+          err = legacyResult.error
+        }
+
+        if (err) {
+          setError(translateError(err))
+          trackEvent('signin_failed')
+        } else {
+          trackEvent('signin_succeeded')
+        }
       }
-    } else {
-      const { error: err } = await signIn(fakeEmail, password)
-      if (err) {
-        setError(translateError(err))
-        trackEvent('signin_failed')
-      } else {
-        trackEvent('signin_succeeded')
-      }
+    } catch {
+      setError('登录服务暂时不可用，请稍后重试')
+      trackEvent(isSignUp ? 'signup_failed' : 'signin_failed')
+    } finally {
+      setSubmitting(false)
     }
-    setSubmitting(false)
   }
 
   const scrollToForm = () => {
@@ -381,6 +413,8 @@ export function LoginPage({ authChecking = false }: LoginPageProps) {
                       placeholder="给自己取个名字"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
+                      maxLength={24}
+                      autoComplete="username"
                       className="pl-10"
                     />
                   </div>
@@ -396,6 +430,7 @@ export function LoginPage({ authChecking = false }: LoginPageProps) {
                       placeholder={isSignUp ? '至少 6 位' : '请输入密码'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={isSignUp ? 'new-password' : 'current-password'}
                       className="pl-10"
                     />
                   </div>

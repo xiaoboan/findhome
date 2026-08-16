@@ -310,7 +310,7 @@ export function Header({
                     <p className="font-medium text-foreground truncate">
                       {user?.user_metadata?.username || user?.email || '用户'}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    <p className="text-xs text-muted-foreground">房源数据仅自己可见</p>
                   </div>
                   {/* 手机端主题切换 */}
                   {isMobile && (
