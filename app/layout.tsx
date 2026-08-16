@@ -18,10 +18,41 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: '寻家 - 温馨的看房记录工具',
-  description: '帮助购房者记录看房信息、对比房源的专业工具，让寻家之路更轻松',
-  generator: 'v0.app',
+  metadataBase: new URL('https://findhome.xiaoboan.top'),
+  title: '寻家 Find Home - 买房租房的房源整理与对比工具',
+  description: '把贝壳、安居客和中介发来的候选房整理到一张表，支持截图识别、看房记录、房源对比和地图查看。',
+  applicationName: '寻家 Find Home',
+  keywords: ['买房', '租房', '看房记录', '房源对比', '房源整理', '买房工具', '租房工具'],
   manifest: '/manifest.json',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'zh_CN',
+    url: '/',
+    siteName: '寻家 Find Home',
+    title: '寻家 Find Home - 把候选房放进同一张表',
+    description: '截图录入、看房记录、房源对比和地图查看，买房租房都能用。',
+    images: [
+      {
+        url: '/icons/icon-512x512.png',
+        width: 512,
+        height: 512,
+        alt: '寻家 Find Home',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: '寻家 Find Home - 把候选房放进同一张表',
+    description: '截图录入、看房记录、房源对比和地图查看，买房租房都能用。',
+    images: ['/icons/icon-512x512.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

@@ -112,9 +112,9 @@ export default function FindHomePage() {
   }, [viewMode, selectedProperties, propertyMode, modeProperties.length, user])
 
   // 认证加载中 — 用空白占位，不显示「加载中」文字
-  // 避免 SSR 输出加载动画导致安卓手机 JS 未 hydrate 时长期显示「加载中」
+  // 先输出完整落地页，避免搜索引擎和 JS 加载失败的访客只看到空白页。
   if (authLoading) {
-    return <div className="h-screen bg-background" />
+    return <LoginPage authChecking />
   }
 
   // 未登录 -> 登录页

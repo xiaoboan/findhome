@@ -44,7 +44,11 @@ const demoProperties = [
   { id: 'yunqi', name: '云栖里', room: '7-1201', price: 439, area: 82, commute: 36, highlight: '总价最低' },
 ]
 
-export function LoginPage() {
+interface LoginPageProps {
+  authChecking?: boolean
+}
+
+export function LoginPage({ authChecking = false }: LoginPageProps) {
   const { signIn, signUp } = useAuth()
   const [isSignUp, setIsSignUp] = useState(true)
   const [username, setUsername] = useState('')
@@ -57,10 +61,10 @@ export function LoginPage() {
   const landingTrackedRef = useRef(false)
 
   useEffect(() => {
-    if (landingTrackedRef.current) return
+    if (authChecking || landingTrackedRef.current) return
     landingTrackedRef.current = true
     trackEvent('landing_viewed')
-  }, [])
+  }, [authChecking])
 
   const selectedDemoProperties = demoProperties.filter((property) => demoSelectedIds.includes(property.id))
   const cheapestDemo = selectedDemoProperties.reduce((best, property) => property.price < best.price ? property : best, selectedDemoProperties[0])
