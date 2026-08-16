@@ -54,6 +54,7 @@ export default function FindHomePage() {
   const fabRef = useRef<FloatingActionButtonRef>(null)
   const comparedSelectionRef = useRef('')
   const activationTrackedRef = useRef('')
+  const manualAddInFlightRef = useRef(false)
 
   const selectedProperties = properties.filter((p) => selectedIds.includes(p.id))
   const modeProperties = properties.filter((p) => !p.mode || p.mode === propertyMode)
@@ -211,6 +212,21 @@ export default function FindHomePage() {
     }
     setIsCompareSelecting(true)
     setViewMode('list')
+  }
+
+  const handleManualAdd = async () => {
+    if (manualAddInFlightRef.current) return
+    manualAddInFlightRef.current = true
+
+    try {
+      const newId = await addProperty()
+      if (!newId) return
+      setSelectedIds([])
+      setActivePropertyId(newId)
+      setViewMode('edit')
+    } finally {
+      manualAddInFlightRef.current = false
+    }
   }
 
   const submitPricingInterest = (plan: 'annual_9_9' | 'lifetime_19_9' | 'free_first') => {
@@ -372,10 +388,7 @@ export default function FindHomePage() {
                 setSelectedIds((prev) => prev.filter((i) => i !== id))
               }}
               onUpdateProperty={updateProperty}
-              onAddProperty={async () => {
-                await addProperty()
-                setViewMode('edit')
-              }}
+              onAddProperty={handleManualAdd}
               onSort={(field: SortField) => {
                 if (sortField === field) {
                   setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
@@ -576,10 +589,7 @@ export default function FindHomePage() {
                   setSelectedIds((prev) => prev.filter((i) => i !== id))
                 }}
                 onUpdateProperty={updateProperty}
-                onAddProperty={async () => {
-                  await addProperty()
-                  setViewMode('edit')
-                }}
+                onAddProperty={handleManualAdd}
                 onSort={(field: SortField) => {
                   if (sortField === field) {
                     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
@@ -642,10 +652,7 @@ export default function FindHomePage() {
         ref={fabRef}
         columns={columns}
         propertyMode={propertyMode}
-        onAddProperty={async () => {
-          await addProperty()
-          setViewMode('edit')
-        }}
+        onAddProperty={handleManualAdd}
         onAddFromScreenshot={async (data: ParsedProperty, imageFile: File) => {
           const initData: Partial<Property> = {}
           if (data.name) initData.name = data.name
