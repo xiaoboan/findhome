@@ -2,10 +2,9 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import Image from 'next/image'
-import { X, ArrowUp, ArrowDown, Sparkles, Settings2, Plus, Trash2, ImageIcon } from 'lucide-react'
+import { X, ArrowUp, ArrowDown, ListChecks, Settings2, Plus, Trash2, ImageIcon } from 'lucide-react'
 import { Property, PropertyMode, CompareColumnConfig, DEFAULT_COMPARE_COLUMNS, ColumnConfig } from '@/types/property'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,6 +28,12 @@ interface PropertyCompareProps {
   propertyMode?: PropertyMode
   onClose: () => void
   onViewDetail: (id: string) => void
+}
+
+interface DifferenceSummaryItem {
+  label: string
+  property: Property
+  value: string
 }
 
 export function PropertyCompare({ properties, customColumns = [], propertyMode = 'buy', onClose, onViewDetail }: PropertyCompareProps) {
@@ -95,14 +100,21 @@ export function PropertyCompare({ properties, customColumns = [], propertyMode =
   const [newColumnLabel, setNewColumnLabel] = useState('')
   const [newColumnUnit, setNewColumnUnit] = useState('')
 
-  // 计算平均值
-  const avgPrice = properties.reduce((sum, p) => sum + p.price, 0) / properties.length
-  const avgArea = properties.reduce((sum, p) => sum + p.area, 0) / properties.length
-  const avgPricePerSqm = properties.reduce((sum, p) => sum + p.pricePerSqm, 0) / properties.length
-  const avgAge = properties.reduce((sum, p) => sum + p.age, 0) / properties.length
+  const averagePositive = (values: number[]) => {
+    const validValues = values.filter(value => Number.isFinite(value) && value > 0)
+    if (validValues.length === 0) return 0
+    return validValues.reduce((sum, value) => sum + value, 0) / validValues.length
+  }
+
+  // 只把大于 0 的已录入数值计入平均值，避免缺失值被误判为优势或劣势。
+  const avgPrice = averagePositive(properties.map(p => p.price))
+  const avgArea = averagePositive(properties.map(p => p.area))
+  const avgPricePerSqm = averagePositive(properties.map(p => p.pricePerSqm))
+  const avgAge = averagePositive(properties.map(p => p.age))
 
   // 比较指标
   const getCompareIndicator = (value: number, avg: number, isHigherBetter: boolean) => {
+    if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(avg) || avg <= 0) return null
     const diff = value - avg
     if (Math.abs(diff) < avg * 0.05) return null // 差异小于5%不显示
     
@@ -121,24 +133,50 @@ export function PropertyCompare({ properties, customColumns = [], propertyMode =
     }
   }
 
-  // AI推荐排序
-  const rankedProperties = [...properties].sort((a, b) => {
-    let scoreA = 0, scoreB = 0
-    
-    if (a.price < avgPrice) scoreA += 2
-    if (b.price < avgPrice) scoreB += 2
-    
-    if (a.area > avgArea) scoreA += 1
-    if (b.area > avgArea) scoreB += 1
-    
-    if (a.status === 'viewed') scoreA += 1
-    if (b.status === 'viewed') scoreB += 1
-    
-    if (a.isFavorite) scoreA += 1
-    if (b.isFavorite) scoreB += 1
-    
-    return scoreB - scoreA
-  })
+  const differenceSummary = useMemo(() => {
+    const summarize = (
+      label: string,
+      selector: (property: Property) => number,
+      direction: 'min' | 'max',
+      format: (value: number) => string,
+    ): DifferenceSummaryItem | null => {
+      const candidates = properties
+        .map(property => ({ property, value: selector(property) }))
+        .filter(candidate => Number.isFinite(candidate.value) && candidate.value > 0)
+
+      if (candidates.length < 2 || new Set(candidates.map(candidate => candidate.value)).size < 2) {
+        return null
+      }
+
+      const winner = candidates.reduce((best, candidate) => {
+        if (direction === 'min') return candidate.value < best.value ? candidate : best
+        return candidate.value > best.value ? candidate : best
+      })
+
+      return {
+        label,
+        property: winner.property,
+        value: format(winner.value),
+      }
+    }
+
+    return [
+      summarize(
+        propertyMode === 'rent' ? '月租更低' : '总价更低',
+        property => property.price,
+        'min',
+        value => propertyMode === 'rent' ? `${value} 元/月` : `${value} 万`,
+      ),
+      summarize('面积更大', property => property.area, 'max', value => `${value} ㎡`),
+      summarize(
+        '单价更低',
+        property => property.pricePerSqm,
+        'min',
+        value => propertyMode === 'rent' ? `${value} 元/㎡/月` : `${value} 万/㎡`,
+      ),
+      summarize('房龄更短', property => property.age, 'min', value => `${value} 年`),
+    ].filter((item): item is DifferenceSummaryItem => item !== null)
+  }, [properties, propertyMode])
 
   const visibleColumns = compareColumns.filter(col => col.visible)
 
@@ -439,59 +477,37 @@ export function PropertyCompare({ properties, customColumns = [], propertyMode =
         </table>
       </div>
 
-      {/* AI对比建议 */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/30">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-primary" />
-            AI 推荐排序
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {rankedProperties.map((p, index) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
+      {/* 只总结可核对的数值差异，不替用户做主观推荐。 */}
+      <section className="border-t border-border pt-5">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-primary" aria-hidden="true" />
+            <h3 className="text-lg font-semibold">差异摘要</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">只按已录入数值总结，不替你推荐房源</p>
+        </div>
+
+        {differenceSummary.length > 0 ? (
+          <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
+            {differenceSummary.map(item => (
+              <button
+                key={item.label}
+                type="button"
+                className="min-w-0 bg-card p-4 text-left transition-colors hover:bg-accent"
+                onClick={() => onViewDetail(item.property.id)}
               >
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full font-bold ${
-                    index === 0
-                      ? 'bg-primary text-primary-foreground'
-                      : index === 1
-                      ? 'bg-chart-4 text-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-foreground">
-                    {p.name}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {p.price}{propertyMode === 'rent' ? '元/月' : '万'} · {p.area}㎡ · {p.layout}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary hover:bg-accent"
-                  onClick={() => onViewDetail(p.id)}
-                >
-                  查看详情
-                </Button>
-              </div>
+                <span className="text-xs text-muted-foreground">{item.label}</span>
+                <span className="mt-1 block truncate font-medium text-foreground">{item.property.name}</span>
+                <span className="mt-0.5 block text-sm tabular-nums text-primary">{item.value}</span>
+              </button>
             ))}
           </div>
-          <div className="mt-4 rounded-xl bg-accent/50 p-4 text-sm text-muted-foreground">
-            <strong className="text-foreground">推荐理由：</strong>
-            综合考虑价格、面积、位置等因素，{rankedProperties[0]?.name} 
-            性价比最高，建议优先考虑。
-            {rankedProperties[0]?.tags.includes('可议价') && '且房东可议价，有进一步降价空间。'}
+        ) : (
+          <div className="rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
+            补全至少两套房的价格、面积、单价或房龄后，这里会自动列出客观差异。
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </section>
 
       {/* 添加对比项对话框 */}
       <Dialog open={showAddColumnDialog} onOpenChange={setShowAddColumnDialog}>
