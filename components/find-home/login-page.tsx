@@ -115,7 +115,7 @@ export function LoginPage({ authChecking = false }: LoginPageProps) {
         const { error: err } = await signUp(internalEmail, password, displayUsername)
         if (err) {
           setError(translateError(err))
-          trackEvent('signup_failed')
+          trackEvent('signup_failed', { reason: classifyAuthError(err) })
         } else {
           trackEvent('signup_succeeded')
         }
@@ -130,14 +130,14 @@ export function LoginPage({ authChecking = false }: LoginPageProps) {
 
         if (err) {
           setError(translateError(err))
-          trackEvent('signin_failed')
+          trackEvent('signin_failed', { reason: classifyAuthError(err) })
         } else {
           trackEvent('signin_succeeded')
         }
       }
     } catch {
       setError('登录服务暂时不可用，请稍后重试')
-      trackEvent(isSignUp ? 'signup_failed' : 'signin_failed')
+      trackEvent(isSignUp ? 'signup_failed' : 'signin_failed', { reason: 'client_error' })
     } finally {
       setSubmitting(false)
     }
@@ -501,4 +501,14 @@ function translateError(msg: string): string {
   if (msg.includes('Email not confirmed')) return '登录失败，请检查用户名和密码'
   if (msg.includes('Password should be')) return '密码至少 6 位'
   return msg
+}
+
+function classifyAuthError(msg: string) {
+  const normalized = msg.toLowerCase()
+  if (normalized.includes('invalid login credentials')) return 'invalid_credentials'
+  if (normalized.includes('already registered')) return 'already_registered'
+  if (normalized.includes('password should be')) return 'weak_password'
+  if (normalized.includes('rate limit') || normalized.includes('too many requests')) return 'rate_limited'
+  if (normalized.includes('network') || normalized.includes('fetch')) return 'network_error'
+  return 'unknown'
 }

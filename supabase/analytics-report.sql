@@ -43,3 +43,16 @@ where event_name = 'landing_cta_clicked'
   and created_at >= now() - interval '30 days'
 group by 1
 order by responses desc;
+
+-- 注册和登录失败原因（只记录枚举，不含用户名或原始错误文本）
+select
+  event_name,
+  coalesce(properties->>'reason', 'unclassified') as reason,
+  count(*) as failures,
+  count(distinct anonymous_id) as devices
+from public.analytics_events
+where event_name in ('signup_failed', 'signin_failed')
+  and created_at >= now() - interval '30 days'
+  and coalesce(utm_source, '') <> 'internal'
+group by 1, 2
+order by failures desc;
