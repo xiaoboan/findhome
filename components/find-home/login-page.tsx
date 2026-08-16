@@ -46,7 +46,7 @@ const demoProperties = [
 
 export function LoginPage() {
   const { signIn, signUp } = useAuth()
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(true)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -108,6 +108,8 @@ export function LoginPage() {
   }
 
   const scrollToForm = () => {
+    setIsSignUp(true)
+    setError('')
     formRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
@@ -160,11 +162,11 @@ export function LoginPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            无需下载 &middot; 免费使用
+            无需下载 &middot; 手机电脑都能用
           </p>
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground/70 md:hidden">
             <Monitor className="h-3 w-3" />
-            推荐电脑或平板横屏使用，体验更佳
+            手机可直接使用，电脑上对比更清楚
           </p>
         </div>
 
@@ -432,11 +434,11 @@ export function LoginPage() {
           <div className="mt-6 flex items-center justify-center gap-4 md:gap-6 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Zap className="h-3.5 w-3.5" />
-              永久免费
+              无需下载
             </span>
             <span className="flex items-center gap-1">
               <Monitor className="h-3.5 w-3.5" />
-              电脑平板体验更佳
+              手机电脑都能用
             </span>
             <span className="flex items-center gap-1">
               <Shield className="h-3.5 w-3.5" />
