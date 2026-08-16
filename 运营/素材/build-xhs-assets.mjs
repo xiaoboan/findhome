@@ -5,6 +5,7 @@ import sharp from "sharp";
 const root = process.cwd();
 const source = path.join(root, "运营/素材/产品截图/landing-desktop.png");
 const outputDir = path.join(root, "运营/素材/小红书/01-看房记录");
+const outputDir2 = path.join(root, "运营/素材/小红书/02-跨平台整理");
 
 const width = 1242;
 const height = 1656;
@@ -48,7 +49,7 @@ const screenshotCrop = async ({ top, height: cropHeight, targetWidth = 1082 }) =
   return buffer;
 };
 
-const writeSlide = async (name, layers) => {
+const writeSlide = async (name, layers, directory = outputDir) => {
   await sharp({
     create: {
       width,
@@ -59,10 +60,11 @@ const writeSlide = async (name, layers) => {
   })
     .composite(layers)
     .png({ compressionLevel: 9 })
-    .toFile(path.join(outputDir, name));
+    .toFile(path.join(directory, name));
 };
 
 await mkdir(outputDir, { recursive: true });
+await mkdir(outputDir2, { recursive: true });
 
 const demoCrop = await screenshotCrop({ top: 1260, height: 780 });
 const painCrop = await screenshotCrop({ top: 690, height: 540 });
@@ -179,4 +181,124 @@ await sharp({
   .png()
   .toFile(path.join(outputDir, "preview.png"));
 
-console.log(`Generated 5 assets in ${outputDir}`);
+await writeSlide("01-cover.png", [
+  {
+    input: svg(
+      `<rect x="80" y="80" width="300" height="58" rx="8" fill="${colors.mint}"/>` +
+        text({ x: 230, y: 120, size: 28, value: "跨平台房源整理", color: colors.mintInk, weight: 700, anchor: "middle" }) +
+        multiline({ x: 80, y: 270, size: 72, lines: ["贝壳、安居客、", "中介微信的房源，", "终于放进一张表"], weight: 800, gap: 1.25 }) +
+        text({ x: 80, y: 610, size: 34, value: "收藏夹解决“看过”，自己的表解决“怎么选”", color: colors.muted, weight: 500 }) +
+        `<rect x="80" y="710" width="1082" height="820" rx="8" fill="${colors.white}" stroke="${colors.line}" stroke-width="2"/>` +
+        `<rect x="80" y="1470" width="1082" height="60" fill="${colors.ink}"/>` +
+        text({ x: 621, y: 1511, size: 27, value: "寻家 Find Home · 真实产品截图", color: colors.white, weight: 700, anchor: "middle" }),
+    ),
+  },
+  { input: demoCrop, left: 80, top: 710 },
+], outputDir2);
+
+await writeSlide("02-scattered.png", [
+  {
+    input: svg(
+      text({ x: 80, y: 126, size: 30, value: "01 / 信息为什么越看越乱", color: colors.coral, weight: 700 }) +
+        multiline({ x: 80, y: 260, size: 68, lines: ["不是房源太少，", "而是信息到处都是"], weight: 800 }) +
+        [
+          ["平台收藏", "价格、户型、经纪人描述", colors.coralSoft, colors.coral],
+          ["中介微信", "临时链接、语音和谈价线索", colors.mint, colors.mintInk],
+          ["相册备忘录", "现场照片、采光和噪音感受", "#edf1f8", "#334b70"],
+        ]
+          .map(([title, detail, fill, ink], index) => {
+            const y = 560 + index * 220;
+            return (
+              `<rect x="80" y="${y}" width="1082" height="170" rx="8" fill="${fill}"/>` +
+              text({ x: 130, y: y + 68, size: 40, value: title, color: ink, weight: 750 }) +
+              text({ x: 130, y: y + 122, size: 31, value: detail, color: colors.muted, weight: 500 })
+            );
+          })
+          .join("") +
+        `<rect x="80" y="1280" width="1082" height="190" rx="8" fill="${colors.ink}"/>` +
+        multiline({ x: 621, y: 1355, size: 38, lines: ["真正需要做决定时，", "这些信息并不在一起"], color: colors.white, weight: 750, gap: 1.4, anchor: "middle" }),
+    ),
+  },
+], outputDir2);
+
+await writeSlide("03-columns.png", [
+  {
+    input: svg(
+      text({ x: 80, y: 126, size: 30, value: "02 / 先做一张最小可用表", color: colors.coral, weight: 700 }) +
+        multiline({ x: 80, y: 260, size: 68, lines: ["我只先统一", "6 类决策信息"], weight: 800 }) +
+        `<rect x="80" y="520" width="1082" height="830" rx="8" fill="${colors.white}" stroke="${colors.line}" stroke-width="2"/>` +
+        [
+          ["小区 / 房号", "避免候选房串台"],
+          ["总价 / 面积", "先看预算与空间"],
+          ["通勤", "把每天的时间成本算进去"],
+          ["现场感受", "采光、噪音、异味、装修"],
+          ["谈价线索", "急售、税费、房东预期"],
+          ["下一步", "待看、复看、淘汰"],
+        ]
+          .map(([title, detail], index) => {
+            const y = 590 + index * 120;
+            return (
+              `<circle cx="140" cy="${y}" r="30" fill="${index % 2 === 0 ? colors.coral : colors.mintInk}"/>` +
+              text({ x: 140, y: y + 11, size: 28, value: String(index + 1), color: colors.white, weight: 800, anchor: "middle" }) +
+              text({ x: 210, y: y + 2, size: 36, value: title, weight: 750 }) +
+              text({ x: 560, y: y + 2, size: 30, value: detail, color: colors.muted, weight: 500 })
+            );
+          })
+          .join("") +
+        text({ x: 80, y: 1480, size: 34, value: "先统一字段，再谈哪个平台的房源更好。", color: colors.mintInk, weight: 700 }),
+    ),
+  },
+], outputDir2);
+
+await writeSlide("04-table.png", [
+  {
+    input: svg(
+      text({ x: 80, y: 126, size: 30, value: "03 / 放在一起之后", color: colors.coral, weight: 700 }) +
+        multiline({ x: 80, y: 260, size: 68, lines: ["价格、面积、通勤，", "终于能横着比较"], weight: 800 }) +
+        text({ x: 80, y: 465, size: 35, value: "现场才知道的信息，也能自己补进表里", color: colors.muted, weight: 500 }) +
+        `<rect x="80" y="560" width="1082" height="850" rx="8" fill="${colors.white}" stroke="${colors.line}" stroke-width="2"/>` +
+        `<rect x="80" y="1470" width="1082" height="100" rx="8" fill="${colors.mint}"/>` +
+        text({ x: 621, y: 1535, size: 32, value: "表格不替你选，只让差异不再藏起来", color: colors.mintInk, weight: 700, anchor: "middle" }),
+    ),
+  },
+  { input: demoCrop, left: 80, top: 560 },
+], outputDir2);
+
+await writeSlide("05-cta.png", [
+  {
+    input: svg(
+      `<rect x="0" y="0" width="1242" height="370" fill="${colors.ink}"/>` +
+        text({ x: 80, y: 120, size: 30, value: "寻家 Find Home", color: colors.coral, weight: 750 }) +
+        multiline({ x: 80, y: 230, size: 62, lines: ["截图负责少抄字，", "最终数据由你确认"], color: colors.white, weight: 800 }) +
+        `<rect x="80" y="450" width="1082" height="570" rx="8" fill="${colors.white}" stroke="${colors.line}" stroke-width="2"/>` +
+        `<rect x="80" y="1090" width="1082" height="300" rx="8" fill="${colors.coralSoft}"/>` +
+        multiline({ x: 130, y: 1185, size: 36, lines: ["适合同时在多个平台找房，", "又想保留现场看房判断的人。"], color: colors.ink, weight: 650, gap: 1.5 }) +
+        text({ x: 621, y: 1505, size: 44, value: "免费体验：findhome.xiaoboan.top", color: colors.ink, weight: 800, anchor: "middle" }) +
+        text({ x: 621, y: 1575, size: 29, value: "把分散房源整理成自己的候选清单", color: colors.muted, weight: 500, anchor: "middle" }),
+    ),
+  },
+  { input: featureCrop, left: 80, top: 450 },
+], outputDir2);
+
+const previewFiles2 = ["01-cover.png", "02-scattered.png", "03-columns.png", "04-table.png", "05-cta.png"];
+const previewLayers2 = await Promise.all(
+  previewFiles2.map(async (file, index) => ({
+    input: await sharp(path.join(outputDir2, file)).resize({ width: 248 }).png().toBuffer(),
+    left: index * 258,
+    top: 0,
+  })),
+);
+
+await sharp({
+  create: {
+    width: 1280,
+    height: 331,
+    channels: 4,
+    background: colors.white,
+  },
+})
+  .composite(previewLayers2)
+  .png()
+  .toFile(path.join(outputDir2, "preview.png"));
+
+console.log(`Generated 10 assets in ${outputDir} and ${outputDir2}`);
