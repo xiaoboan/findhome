@@ -51,6 +51,7 @@ export default function FindHomePage() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({})
   const fabRef = useRef<FloatingActionButtonRef>(null)
   const comparedSelectionRef = useRef('')
+  const activationTrackedRef = useRef('')
 
   const selectedProperties = properties.filter((p) => selectedIds.includes(p.id))
   const modeProperties = properties.filter((p) => !p.mode || p.mode === propertyMode)
@@ -75,7 +76,21 @@ export default function FindHomePage() {
       mode: propertyMode,
       count: selectedProperties.length,
     })
-  }, [viewMode, selectedProperties, propertyMode])
+
+    if (!user || modeProperties.length < 3) return
+    const activationSignature = `${user.id}_${propertyMode}`
+    if (activationSignature === activationTrackedRef.current) return
+    activationTrackedRef.current = activationSignature
+
+    const storageKey = `findhome_activation_${activationSignature}`
+    if (sessionStorage.getItem(storageKey)) return
+    sessionStorage.setItem(storageKey, '1')
+    trackEvent('activation_completed', {
+      mode: propertyMode,
+      property_count: modeProperties.length,
+      comparison_count: selectedProperties.length,
+    })
+  }, [viewMode, selectedProperties, propertyMode, modeProperties.length, user])
 
   // 认证加载中 — 用空白占位，不显示「加载中」文字
   // 避免 SSR 输出加载动画导致安卓手机 JS 未 hydrate 时长期显示「加载中」

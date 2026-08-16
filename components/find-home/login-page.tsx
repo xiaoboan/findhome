@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Home, Lock, User, Camera, GitCompareArrows, MapPin, ChevronDown, Pencil, ClipboardList, Table2, Shield, Zap, Monitor, CheckCircle2, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -54,6 +54,13 @@ export function LoginPage() {
   const [demoSelectedIds, setDemoSelectedIds] = useState(['haitang', 'jiangwan'])
   const formRef = useRef<HTMLDivElement>(null)
   const demoRef = useRef<HTMLElement>(null)
+  const landingTrackedRef = useRef(false)
+
+  useEffect(() => {
+    if (landingTrackedRef.current) return
+    landingTrackedRef.current = true
+    trackEvent('landing_viewed')
+  }, [])
 
   const selectedDemoProperties = demoProperties.filter((property) => demoSelectedIds.includes(property.id))
   const cheapestDemo = selectedDemoProperties.reduce((best, property) => property.price < best.price ? property : best, selectedDemoProperties[0])

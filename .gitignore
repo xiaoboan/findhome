@@ -8,6 +8,8 @@ node_modules/
 .next/
 .env*.local
 .DS_Store
+.pnpm-store/
+tsconfig.tsbuildinfo
 
 #claude
 CLAUDE.mdtsconfig.tsbuildinfo
