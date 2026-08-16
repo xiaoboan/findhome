@@ -273,7 +273,7 @@ await writeSlide("05-cta.png", [
         `<rect x="80" y="450" width="1082" height="570" rx="8" fill="${colors.white}" stroke="${colors.line}" stroke-width="2"/>` +
         `<rect x="80" y="1090" width="1082" height="300" rx="8" fill="${colors.coralSoft}"/>` +
         multiline({ x: 130, y: 1185, size: 36, lines: ["适合同时在多个平台找房，", "又想保留现场看房判断的人。"], color: colors.ink, weight: 650, gap: 1.5 }) +
-        text({ x: 621, y: 1505, size: 44, value: "免费体验：findhome.xiaoboan.top", color: colors.ink, weight: 800, anchor: "middle" }) +
+        text({ x: 621, y: 1505, size: 44, value: "想试的话，主页搜「异人造物局」", color: colors.ink, weight: 800, anchor: "middle" }) +
         text({ x: 621, y: 1575, size: 29, value: "把分散房源整理成自己的候选清单", color: colors.muted, weight: 500, anchor: "middle" }),
     ),
   },
