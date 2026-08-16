@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ArrowRight, GitCompareArrows, ListChecks } from 'lucide-react'
+import { ArrowRight, CircleDollarSign, GitCompareArrows, ListChecks } from 'lucide-react'
 import { ViewMode, SortField, SortOrder, Property } from '@/types/property'
 import { useAuth } from '@/components/auth-provider'
 import { useProperties } from '@/hooks/use-properties'
@@ -50,6 +50,7 @@ export default function FindHomePage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({})
   const [activationComplete, setActivationComplete] = useState(false)
+  const [pricingInterestSubmitted, setPricingInterestSubmitted] = useState(false)
   const fabRef = useRef<FloatingActionButtonRef>(null)
   const comparedSelectionRef = useRef('')
   const activationTrackedRef = useRef('')
@@ -74,6 +75,12 @@ export default function FindHomePage() {
     sessionStorage.setItem(storageKey, '1')
     trackEvent('property_milestone_reached', { mode: propertyMode, count: milestone })
   }, [user, dataLoading, modeProperties.length, propertyMode])
+
+  useEffect(() => {
+    if (!user || !activationComplete) return
+    const storageKey = `findhome_pricing_interest_${user.id}_${propertyMode}`
+    setPricingInterestSubmitted(sessionStorage.getItem(storageKey) === '1')
+  }, [user, activationComplete, propertyMode])
 
   useEffect(() => {
     if (viewMode !== 'compare' || selectedProperties.length < 2) return
@@ -206,6 +213,13 @@ export default function FindHomePage() {
     setViewMode('list')
   }
 
+  const submitPricingInterest = (plan: 'annual_9_9' | 'lifetime_19_9' | 'free_first') => {
+    if (!user) return
+    sessionStorage.setItem(`findhome_pricing_interest_${user.id}_${propertyMode}`, '1')
+    setPricingInterestSubmitted(true)
+    trackEvent('landing_cta_clicked', { location: 'pricing_interest', plan })
+  }
+
   // 编辑模式下选中房源也显示详情
   const showDetail = (viewMode === 'detail' || (viewMode === 'edit' && activePropertyId)) && activeProperty
   const showCompare = viewMode === 'compare' && selectedProperties.length >= 2
@@ -268,6 +282,29 @@ export default function FindHomePage() {
               {activationCount < 3 ? '继续录入' : '开始对比'}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
+          </div>
+        </div>
+      )}
+
+      {activationComplete && !pricingInterestSubmitted && (
+        <div className="shrink-0 border-b border-primary/20 bg-primary/5 px-4 py-3">
+          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-3 gap-y-2">
+            <CircleDollarSign className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">早期版价格调研</p>
+              <p className="text-xs text-muted-foreground">不影响当前免费使用，选一个你觉得合理的方案就好</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" className="h-8" onClick={() => submitPricingInterest('annual_9_9')}>
+                9.9 元/年
+              </Button>
+              <Button size="sm" variant="outline" className="h-8" onClick={() => submitPricingInterest('lifetime_19_9')}>
+                19.9 元买断
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => submitPricingInterest('free_first')}>
+                先免费用
+              </Button>
+            </div>
           </div>
         </div>
       )}

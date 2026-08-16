@@ -31,3 +31,15 @@ where created_at >= now() - interval '30 days'
   and coalesce(utm_source, '') <> 'internal'
 group by 1, 2
 order by activated_users desc, signup_devices desc, landing_devices desc;
+
+-- Pricing intent collected after activation. This is a survey signal, not a payment.
+select
+  properties->>'plan' as plan,
+  count(*) as responses,
+  count(distinct user_id) filter (where user_id is not null) as users
+from public.analytics_events
+where event_name = 'landing_cta_clicked'
+  and properties->>'location' = 'pricing_interest'
+  and created_at >= now() - interval '30 days'
+group by 1
+order by responses desc;
