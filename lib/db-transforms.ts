@@ -1,4 +1,5 @@
 import { Property } from '@/types/property'
+import { toStorageReference } from '@/lib/storage-reference'
 
 // DB row -> 前端 Property
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,7 +65,7 @@ export function propertyToDbUpdate(updates: Partial<Property>) {
   if (updates.tags !== undefined) result.tags = updates.tags
   if (updates.lastViewing !== undefined) result.last_viewing = updates.lastViewing || null
   if (updates.isFavorite !== undefined) result.is_favorite = updates.isFavorite
-  if (updates.coverImage !== undefined) result.cover_image = updates.coverImage
+  if (updates.coverImage !== undefined) result.cover_image = toStorageReference(updates.coverImage)
   if (updates.customFields !== undefined) result.custom_fields = updates.customFields
   if (updates.sourceUrl !== undefined) result.source_url = updates.sourceUrl
   if ('longitude' in updates) result.longitude = updates.longitude ?? null

@@ -5,7 +5,8 @@ import { toast } from 'sonner'
 import { Property, PropertyMode, ColumnConfig, DEFAULT_COLUMNS } from '@/types/property'
 import { getSupabase } from '@/lib/supabase'
 import { dbToProperty, propertyToDbUpdate } from '@/lib/db-transforms'
-import { deleteImage } from '@/lib/storage'
+import { deleteImage, resolveStoredImageUrls } from '@/lib/storage'
+import { toStorageReference } from '@/lib/storage-reference'
 import { useAuth } from '@/components/auth-provider'
 import { trackEvent } from '@/lib/analytics'
 
@@ -38,7 +39,7 @@ async function syncViewingRecords(
           date: record.date,
           notes: record.notes,
           visit_number: record.visitNumber,
-          photos: record.photos,
+          photos: record.photos.map(toStorageReference),
         })
         .eq('id', record.id)
       if (error) throw error
@@ -49,7 +50,7 @@ async function syncViewingRecords(
         date: record.date,
         notes: record.notes,
         visit_number: record.visitNumber,
-        photos: record.photos,
+        photos: record.photos.map(toStorageReference),
       })
       if (error) throw error
     }
@@ -88,7 +89,19 @@ export function useProperties() {
           const analysis = ((analysesData || []) as Record<string, unknown>[]).find((a) => a.property_id === p.id) || null
           return dbToProperty(p, records, analysis)
         })
-        setProperties(result)
+        const imageValues = result.flatMap((property) => [
+          ...(property.coverImage ? [property.coverImage] : []),
+          ...property.viewingRecords.flatMap((record) => record.photos),
+        ])
+        const resolvedImages = await resolveStoredImageUrls(imageValues)
+        setProperties(result.map((property) => ({
+          ...property,
+          coverImage: resolvedImages.get(property.coverImage) || property.coverImage,
+          viewingRecords: property.viewingRecords.map((record) => ({
+            ...record,
+            photos: record.photos.map((photo) => resolvedImages.get(photo) || photo),
+          })),
+        })))
       }
     } catch (err) {
       console.error('加载房源数据失败:', err)

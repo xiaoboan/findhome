@@ -1,10 +1,69 @@
 import { getSupabase } from './supabase'
+import {
+  createStorageReference,
+  getStoragePath,
+  PROPERTY_IMAGE_BUCKET,
+} from './storage-reference'
 
-const BUCKET = 'property-images'
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24
+const SIGNED_URL_CACHE_MS = 23 * 60 * 60 * 1000
+
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>()
+
+function rememberSignedUrl(path: string, url: string) {
+  const reference = createStorageReference(path)
+  signedUrlCache.set(reference, {
+    url,
+    expiresAt: Date.now() + SIGNED_URL_CACHE_MS,
+  })
+  return url
+}
+
+export async function resolveStoredImageUrls(values: string[]) {
+  const resolved = new Map(values.map(value => [value, value]))
+  const valuesByReference = new Map<string, { path: string; values: string[] }>()
+
+  for (const value of values) {
+    const path = getStoragePath(value)
+    if (!path) continue
+
+    const reference = createStorageReference(path)
+    const cached = signedUrlCache.get(reference)
+    if (cached && cached.expiresAt > Date.now()) {
+      resolved.set(value, cached.url)
+      continue
+    }
+
+    const existing = valuesByReference.get(reference)
+    if (existing) {
+      existing.values.push(value)
+    } else {
+      valuesByReference.set(reference, { path, values: [value] })
+    }
+  }
+
+  await Promise.all(
+    Array.from(valuesByReference.values()).map(async ({ path, values: sourceValues }) => {
+      const { data, error } = await getSupabase().storage
+        .from(PROPERTY_IMAGE_BUCKET)
+        .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+
+      if (error || !data?.signedUrl) {
+        console.error('私有图片访问地址生成失败:', error?.message || 'unknown error')
+        return
+      }
+
+      const signedUrl = rememberSignedUrl(path, data.signedUrl)
+      sourceValues.forEach(value => resolved.set(value, signedUrl))
+    })
+  )
+
+  return resolved
+}
 
 /**
- * 上传图片到 Supabase Storage
- * 路径格式: {userId}/{propertyId}/{timestamp}-{filename}
+ * 上传图片到 Supabase Storage。
+ * 数据库存对象引用，界面只使用短期签名 URL。
  */
 export async function uploadImage(
   file: File,
@@ -13,29 +72,28 @@ export async function uploadImage(
 ): Promise<string> {
   const ext = file.name.split('.').pop() || 'jpg'
   const path = `${userId}/${propertyId}/${Date.now()}.${ext}`
+  const storage = getSupabase().storage.from(PROPERTY_IMAGE_BUCKET)
 
-  const { error } = await getSupabase().storage
-    .from(BUCKET)
-    .upload(path, file, { upsert: false })
+  const { error: uploadError } = await storage.upload(path, file, { upsert: false })
+  if (uploadError) throw uploadError
 
-  if (error) throw error
+  const { data, error: signError } = await storage.createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+  if (signError || !data?.signedUrl) {
+    await storage.remove([path])
+    throw signError || new Error('图片访问地址生成失败')
+  }
 
-  const { data } = getSupabase().storage
-    .from(BUCKET)
-    .getPublicUrl(path)
-
-  return data.publicUrl
+  return rememberSignedUrl(path, data.signedUrl)
 }
 
-/**
- * 从 Supabase Storage 删除图片
- * 从完整 URL 提取路径后删除
- */
-export async function deleteImage(publicUrl: string): Promise<void> {
-  const marker = `/storage/v1/object/public/${BUCKET}/`
-  const idx = publicUrl.indexOf(marker)
-  if (idx === -1) return // 不是 storage URL（可能是旧的 unsplash），跳过
+/** 删除公开旧 URL、签名 URL 或 storage:// 引用对应的对象。 */
+export async function deleteImage(imageValue: string): Promise<void> {
+  const path = getStoragePath(imageValue)
+  if (!path) return
 
-  const path = publicUrl.slice(idx + marker.length)
-  await getSupabase().storage.from(BUCKET).remove([path])
+  const { error } = await getSupabase().storage.from(PROPERTY_IMAGE_BUCKET).remove([path])
+  if (error) throw error
+
+  const reference = createStorageReference(path)
+  signedUrlCache.delete(reference)
 }
