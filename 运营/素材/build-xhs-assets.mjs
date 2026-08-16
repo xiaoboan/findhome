@@ -153,8 +153,8 @@ await writeSlide("05-cta.png", [
         `<rect x="80" y="1060" width="1082" height="310" rx="8" fill="${colors.coralSoft}"/>` +
         text({ x: 130, y: 1155, size: 36, value: "适合正在：", color: colors.coral, weight: 750 }) +
         multiline({ x: 130, y: 1235, size: 35, lines: ["· 买房时集中对比候选房", "· 租房时记录通勤和现场感受", "· 和伴侣或家人统一决策依据"], weight: 600, gap: 1.5 }) +
-        text({ x: 621, y: 1505, size: 44, value: "免费体验：findhome.xiaoboan.top", color: colors.ink, weight: 800, anchor: "middle" }) +
-        text({ x: 621, y: 1575, size: 29, value: "先录入 3 套房，再做一次对比", color: colors.muted, weight: 500, anchor: "middle" }),
+        text({ x: 621, y: 1505, size: 39, value: "我的做法：先淘汰硬伤，再比较剩下 3 套", color: colors.ink, weight: 800, anchor: "middle" }) +
+        text({ x: 621, y: 1575, size: 29, value: "下一篇继续拆解跨平台房源怎么整理", color: colors.muted, weight: 500, anchor: "middle" }),
     ),
   },
   { input: featureCrop, left: 80, top: 390 },
@@ -273,8 +273,8 @@ await writeSlide("05-cta.png", [
         `<rect x="80" y="450" width="1082" height="570" rx="8" fill="${colors.white}" stroke="${colors.line}" stroke-width="2"/>` +
         `<rect x="80" y="1090" width="1082" height="300" rx="8" fill="${colors.coralSoft}"/>` +
         multiline({ x: 130, y: 1185, size: 36, lines: ["适合同时在多个平台找房，", "又想保留现场看房判断的人。"], color: colors.ink, weight: 650, gap: 1.5 }) +
-        text({ x: 621, y: 1505, size: 44, value: "想试的话，主页搜「异人造物局」", color: colors.ink, weight: 800, anchor: "middle" }) +
-        text({ x: 621, y: 1575, size: 29, value: "把分散房源整理成自己的候选清单", color: colors.muted, weight: 500, anchor: "middle" }),
+        text({ x: 621, y: 1505, size: 39, value: "我的做法：统一字段，再补现场判断", color: colors.ink, weight: 800, anchor: "middle" }) +
+        text({ x: 621, y: 1575, size: 29, value: "下一篇：总价差 20 万，真实成本差多少？", color: colors.muted, weight: 500, anchor: "middle" }),
     ),
   },
   { input: featureCrop, left: 80, top: 450 },
