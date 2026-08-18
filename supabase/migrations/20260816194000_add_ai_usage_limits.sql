@@ -47,7 +47,7 @@ begin
     v_usage.day_count := 0;
   end if;
 
-  if v_usage.minute_count >= 5 or v_usage.day_count >= 50 then
+  if v_usage.minute_count >= 5 or v_usage.day_count >= 10 then
     return false;
   end if;
 
@@ -64,5 +64,5 @@ begin
 end;
 $$;
 
-revoke all on function public.claim_screenshot_parse() from public;
+revoke all on function public.claim_screenshot_parse() from anon, public;
 grant execute on function public.claim_screenshot_parse() to authenticated;
