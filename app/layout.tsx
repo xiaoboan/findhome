@@ -79,9 +79,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const webApplicationStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: '寻家 Find Home',
+    url: 'https://findhome.xiaoboan.top',
+    description: '买房租房的房源整理与对比工具，支持截图录入、看房记录、房源对比和地图查看。',
+    applicationCategory: 'LifestyleApplication',
+    operatingSystem: 'Web',
+    inLanguage: 'zh-CN',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'CNY' },
+  }
+
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationStructuredData) }} />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
